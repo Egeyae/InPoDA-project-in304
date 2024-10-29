@@ -76,7 +76,7 @@ def hashtags_list(path):
 
 def users_list(path):
     """
-    Fonction permettant d'obtenir la liste des hashtags présents dans un tweet. 
+    Fonction permettant d'obtenir la liste des utilisateurs mentionnés dans un tweet. 
     """
     if type(path)!=str:
         print("Erreur sur le type du chemin")
