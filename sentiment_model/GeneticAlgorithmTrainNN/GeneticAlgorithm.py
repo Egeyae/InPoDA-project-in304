@@ -1,174 +1,158 @@
-import logging
 import random
-from abc import ABC, abstractmethod
-import numpy as np
+import pickle
+import logging
+from numpy import round as np_round
+from Creature import Creature
 
+try:
+    import cupy as np
+
+    HAS_GPU = True
+except ImportError:
+    import numpy as np
+
+    HAS_GPU = False
+
+# configure logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(logging.NullHandler())
 
-
-class Creature(ABC):
-    """
-    Base class for all creatures. User-defined subclasses must implement these methods.
-    """
-    reverse_fitness = False  # bigger the better by default
-    def __init__(self):
-        self.dna = None
-        self._output = None
-
-    def save_to_file(self, path):
-        with open(path, 'wb') as f:
-            np.save(f, self.dna)
-
-    @staticmethod
-    def load_from_file(filepath):
-        dna = np.load(filepath)
-        return Creature.create_creature(dna=dna)
-
-    @staticmethod
-    @abstractmethod
-    def create_creature(dna=None):
-        """
-        Factory method to create a new creature.
-        This method should be implemented by the user.
-        """
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def crossover(parent1, parent2):
-        """
-        Crossover method for combining two parent creatures' DNA into a child.
-        This method should be implemented by the user.
-        """
-        pass
-
-    @abstractmethod
-    def mutate(self) -> None:
-        """
-        Mutate the creature's DNA. This method should be implemented by the user.
-        """
-        pass
-
-    @abstractmethod
-    def fitness(self, expected_output=None) -> None:
-        """
-        Compute the creature's fitness based on the problem at hand.
-        This method should be implemented by the user.
-        """
-        pass
-
-    @abstractmethod
-    def process(self, input_=None) -> None:
-        """
-        Process the creature based on the input (e.g., data, environment).
-        This method should be implemented by the user.
-        """
-        pass
-
-    @abstractmethod
-    def get_fitness(self) -> float:
-        """
-        Return the creature's fitness score.
-        This method should be implemented by the user.
-        """
-        pass
-
-    def get_output(self):
-        return self._output
 
 class GeneticAlgorithm:
     SELECTION_METHODS = ("elitism", "roulette")
 
-    def __init__(self, population_size: int, creature_class: Creature, reverse_fitness: bool=False, selection_methods: tuple[str] = ("elitism", "roulette")):
-        self.best_creature = None
-        self.best_output = None
-        self.best_fitness = None
+    def __init__(self, population_size: int, creature_class: Creature, reverse_fitness: bool = False,
+                 selection_methods: tuple[str] = ("elitism", "roulette")):
+        if not issubclass(creature_class, Creature):
+            raise TypeError("creature_class must be a subclass of Creature.")
+
+        self.population_size = population_size
+        self.creature_class = creature_class
+        self.reverse_fitness = reverse_fitness or creature_class.reverse_fitness
+
+        # we check if the selection methods used are supported
+        # for the moment, only elitism and roulette methods are supported
         self.selection_methods = []
         for method in selection_methods:
             if method not in self.SELECTION_METHODS:
-                raise ValueError(f"Selection method {method} not supported")
+                raise ValueError(f"Selection method {method} is not supported.")
             self.selection_methods.append(method)
-        self.population_size = population_size
-        self.population = []
-        self.reverse_fitness = creature_class.reverse_fitness
 
-        self.creature_class = creature_class
-        # Create initial population using the user-defined creature class
-        for _ in range(population_size):
-            self.population.append(self.creature_class.create_creature())
+        # we create the initial population
+        self.population = [self.creature_class.create_creature() for _ in range(population_size)]
 
-
+        # attributes to keep track of the best creature and its stats
+        self.best_creature = None
+        self.best_output = None
+        self.best_fitness = None
 
     @staticmethod
-    def elitism(population_fitness_sorted: list, percentage: float=0.05, new_population=None) -> list:
+    def load_from_file(file_path: str):
+        with open(file_path, "rb") as file:
+            ga = pickle.load(file)
+        # we check that we loaded the correct type of object
+        if isinstance(ga, GeneticAlgorithm):
+            return ga
+
+    def save_to_file(self, file_path: str):
+        with open(file_path, 'wb') as file:
+            pickle.dump(self, file)
+
+    @staticmethod
+    def elitism(sorted_population: list, percentage: float = 0.05, new_population=None) -> list:
+        """Select a percentage of the top-performing population."""
         if new_population is None:
             new_population = []
-
-        new_population.extend(population_fitness_sorted[:int(len(population_fitness_sorted) * percentage)])
+        elite_count = max(1, int(len(sorted_population) * percentage))
+        new_population.extend(sorted_population[:elite_count])
         return new_population
 
     @staticmethod
-    def roulette(population_fitness_sorted: list, creature_class: Creature, max_size: int = 10, new_population=None) -> list:
+    def roulette(sorted_population: list, creature_class: Creature, max_size: int = 10,
+                 new_population=None) -> list:
+        """Perform roulette wheel selection."""
         if new_population is None:
             new_population = []
-        total_fitness = sum(creature.get_fitness() for creature in population_fitness_sorted)
+
+        total_fitness = sum(creature.get_fitness() for creature in sorted_population)
         if total_fitness == 0:
             logger.warning("Total fitness is zero; roulette selection cannot proceed.")
             return new_population
 
+        def pick_parent():
+            """
+            Small method to pick a parent out of the population
+            Uses the roulette wheel selection method (https://en.wikipedia.org/wiki/Fitness_proportionate_selection)
+            """
+            pick = random.uniform(0, total_fitness)
+            cumulative = 0
+            for creature in sorted_population:
+                cumulative += creature.get_fitness()
+                if cumulative >= pick:
+                    return creature
+
         while len(new_population) < max_size:
-            pick1 = random.uniform(0, total_fitness)
-            current = 0
-            parent1 = None
-            for creature in population_fitness_sorted:
-                current += creature.get_fitness()
-                if current >= pick1:
-                    parent1 = creature
-                    break
+            # we pick 2 parents
+            parent1, parent2 = pick_parent(), pick_parent()
+            if parent1 is parent2:
+                continue  # avoid crossover with the same parent
 
-            pick2 = random.uniform(0, total_fitness)
-            current = 0
-            parent2 = None
-            for creature in population_fitness_sorted:
-                current += creature.get_fitness()
-                if current >= pick2:
-                    parent2 = creature
-                    break
-
-            if parent1 == parent2:
-                continue
-
+            # we reproduce them
             offspring = creature_class.crossover(parent1, parent2)
+            # mutate the offspring for genetic diversity
             offspring.mutate()
+            # off we go
             new_population.append(offspring)
 
-        return new_population[:max_size]  # Ensure we don’t exceed max_size
+        return new_population[:max_size]
+
+    def compute_fitness(self, input_, output):
+        population_size = len(self.population)
+        i = 0
+        while i < population_size:
+            self.population[i].process(input_)
+            self.population[i].fitness(output)
+            i += 1
 
     def evolve(self, input_=None, expected_output=None):
-        for i in range(self.population_size):
-            self.population[i].process(input_=input_)
-            self.population[i].fitness(expected_output=expected_output)
+        """Run one generation of the genetic algorithm."""
+        # convert to the good type (cupy array or numpy array) depending on the available devices
+        input_ = np.asarray(input_)
+        expected_output = np.asarray(expected_output)
 
-        sorted_population = sorted(self.population, key=lambda x: x.get_fitness(), reverse=not self.reverse_fitness)
+        # evaluate fitness for the population
+        self.compute_fitness(input_, expected_output)
 
-        self.best_fitness = sorted_population[0].get_fitness()
-        self.best_output = np.round(sorted_population[0].get_output(), 3)
-        self.best_creature = sorted_population[0]
-        
+        # sort population by fitness
+        self.population = [creature for creature in
+                           sorted(self.population, reverse=not self.reverse_fitness, key=lambda x: x.get_fitness())]
+
+        # track the best creature (for an interface)
+        self.best_creature = self.population[0]
+        self.best_fitness = self.best_creature.get_fitness()
+        self.best_output = np_round(self.best_creature.get_output(), 4)  # we avoid not necessary details
+
+        # create a new population using selection methods
         new_population = []
         for method in self.selection_methods:
             if method == "elitism":
-                new_population.extend(GeneticAlgorithm.elitism(sorted_population, percentage=0.2))
+                new_population = self.elitism(self.population, percentage=0.2, new_population=new_population)
             elif method == "roulette":
-                new_population.extend(GeneticAlgorithm.roulette(sorted_population, self.creature_class, max_size=self.population_size-len(new_population)))
+                new_population = self.roulette(self.population, self.creature_class,
+                                               max_size=self.population_size,
+                                               new_population=new_population)
+
+        if len(new_population) != self.population_size:  # in case an error occurred in the selection methods
+            raise ValueError(f"Population size mismatch: {len(new_population)} != {self.population_size}")
+
+        # mutate the population for genetic diversity
+        for creature in self.population:
+            creature.mutate()
 
         self.population = new_population
-        assert len(self.population) == self.population_size, f"Population size is not equal to population_size -> {len(self.population)} is not {self.population_size}"
 
-    def epoch(self, inputs_=None, expected_outputs=None):
-        for index, (input_, expected_output) in enumerate(zip(inputs_, expected_outputs), start=1):
-
+    def epoch(self, inputs_: list = None, expected_outputs: list = None):
+        """Run multiple generations for a batch of inputs and expected outputs."""
+        for input_, expected_output in zip(inputs_ or [], expected_outputs or []):
             self.evolve(input_, expected_output)
-

@@ -1,101 +1,173 @@
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################################################
+#######################################################################################
+
+THIS IS A WORK IN PROGRESS, FOR THE MOMENT, PLEASE USE THE CLI INTERFACE
+
+#######################################################################################
+#######################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+
+import sys
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import importlib.util
 import threading
+
 from random import randint
-
-from matplotlib.pyplot import title
-
-from GeneticAlgorithm import GeneticAlgorithm  # Make sure this module is in your path
+import logging
+import os
+from datetime import datetime
+from GeneticAlgorithm import GeneticAlgorithm  # Ensure this is in your path
 import numpy as np
 
+log_filename = f"logs/ga_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+if not os.path.exists("logs"):
+    os.mkdir("logs")
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+logger.info("Genetic Algorithm GUI initialized.")
+
+
+
+
 class GeneticAlgorithmGUI:
-    def __init__(self, root: tk.Tk):
-        self.generations = None
-        self.creature_class = None
-        self.root = root
-        self.root.title("Genetic Algorithm GUI")
-        self.root.resizable(False, False)
+    def __init__(self, window_root: tk.Tk):
+        self.load_io_btn = None
+        self.load_creature_btn = None
+        self.io_module_name = None
+        self.creature_module_name = None
+        self.root = window_root
+        self.root.title("Genetic Algorithm Trainer")
+        self.root.geometry("1000x600")
+        self.root.resizable(True, True)
 
         self.ga = None
-        self.population: list = None
+        self.population = None
         self.inputs = []
         self.outputs = []
-        self.fig, self.ax = plt.subplots()
-        self.accuracy_line, = self.ax.plot([], [], 'r-')
-        self.accuracy_line.set_label("Accuracy")
         self.generation_data = []
         self.accuracy_data = []
-
         self.running = False
 
-        self.out_strvar = tk.StringVar(self.root, "Current / Expected")
-        self.accuracy_strvar = tk.StringVar(self.root, "Accuracy")
-        self.load_strvar = tk.StringVar(self.root, "Load Creature File")
+        # Tkinter variables
+        self.out_strvar = tk.StringVar(value="Current / Expected")
+        self.accuracy_strvar = tk.StringVar(value="Accuracy")
+        self.progress_percent_strvar = tk.StringVar(value="Progress: 0%")
 
-        # Initialize UI components
+        # Plot setup
+        self.fig, self.ax = plt.subplots()
+        self.accuracy_line, = self.ax.plot([], [], 'r-', label="Best Fitness")
+        self.ax.set_title("Accuracy Over Generations")
+        self.ax.set_xlabel("Generation")
+        self.ax.set_ylabel("Fitness")
+        self.ax.legend(loc="upper right")
+
         self.create_widgets()
 
-    def stop(self):
+    def stop_training(self):
         self.running = False
+        logger.info("Training manually stopped.")
 
     def start(self):
         self.running = True
 
     def create_widgets(self):
-        # Frame for Controls
-        control_frame = tk.Frame(self.root)
-        control_frame.grid(row=0, column=0, pady=10)
+        # Layout
+        control_frame = tk.Frame(self.root, padx=10, pady=10)
+        control_frame.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Load and Save Population
-        save_population_btn = tk.Button(control_frame, text="Save Population", command=self.save_population)
-        save_population_btn.grid(row=0, column=0, pady=10)
+        plot_frame = tk.Frame(self.root, padx=10, pady=10)
+        plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
-        load_population_btn = tk.Button(control_frame, text="Load Population", command=self.load_population)
-        load_population_btn.grid(row=0, column=1, pady=10)
-
-        # Load Creature File Button
-        load_file_btn = tk.Button(control_frame, textvariable=self.load_strvar, command=self.load_creature_file)
-        load_file_btn.grid(row=1, column=0, padx=10, pady=5, columnspan=2)
-
-        # Population Size Entry
-        self.create_labeled_entry(control_frame, "Population Size:", 2, 1, default_value="1000")
-
-        # Generations Entry
-        self.create_labeled_entry(control_frame, "Generations:", 3, 1, default_value="100")
-
-        # Epochs Entry
-        self.create_labeled_entry(control_frame, "Epochs: (-1 to work on Generations instead)", 4, 1,
-                                  default_value=f"{-1}")
-
-        # Start Training Button
-        start_btn = tk.Button(control_frame, text="Start Training", command=self.start_training)
-        start_btn.grid(row=5, column=0, columnspan=1, pady=10)
-
-        # Stop Training Button
-        stop_btn = tk.Button(control_frame, text="Stop Training", command=self.stop)
-        stop_btn.grid(row=5, column=1, columnspan=1, pady=10)
-
-        # Progress Bar
-        self.progress_bar = ttk.Progressbar(control_frame, length=300, mode="determinate")
-        self.progress_bar.grid(row=7, column=0, columnspan=2, pady=10)
-
-        # Matplotlib Plot Area
-        plot_frame = tk.Frame(self.root)
-        plot_frame.grid(row=1, column=0, pady=10)
+        # Matplotlib Canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=plot_frame)
-        self.canvas.get_tk_widget().grid(row=0, column=0, columnspan=10, pady=10)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)  # the plot will fill all the reserved space
 
-        output_label = tk.Label(plot_frame, textvariable=self.out_strvar)
-        output_label.grid(row=1, column=0, columnspan=5, pady=10)
+        # Controls
+        ttk.Label(control_frame, text="Genetic Algorithm Trainer", font=("Arial", 16)).grid(row=0, column=0,
+                                                                                            columnspan=2, pady=10)
 
-        current_accuracy_label = tk.Label(plot_frame, textvariable=self.accuracy_strvar)
-        current_accuracy_label.grid(row=1, column=6, columnspan=5, pady=10)
+        self.load_creature_btn = ttk.Button(control_frame, text="Load Creature File", command=self.load_creature_file)
+        self.load_creature_btn.grid(row=1, column=0, columnspan=1, pady=10)
+        self.load_io_btn = ttk.Button(control_frame, text="Load Inputs/Outputs", command=self.load_inputs_outputs)
+        self.load_io_btn.grid(row=1, column=1, columnspan=1, pady=10)
 
-        # Side Panel for Testing Best Creature
-        self.create_side_panel()
+        self.create_labeled_entry(
+            control_frame,
+            "Population Size:",
+            "population_size_entry",
+            default_value="100",
+            row=2, column=0
+        )
+        self.create_labeled_entry(
+            control_frame,
+            "Generations:",
+            "generations_entry",
+            default_value="50",
+            row=3, column=0)
+        self.create_labeled_entry(
+            control_frame,
+            "Epochs:",
+            "epochs_entry",
+            default_value="-1",
+            row=4, column=0)
+
+        self.progress_bar = ttk.Progressbar(control_frame, length=200, mode="determinate")
+        self.progress_bar.grid(row=5, column=0, columnspan=2, pady=10)
+        ttk.Label(control_frame, textvariable=self.progress_percent_strvar).grid(row=6, column=0, columnspan=2, pady=10)
+
+        ttk.Button(control_frame, text="Start Training", command=self.start_training).grid(row=7, column=0,
+                                                                                           columnspan=1, pady=10)
+        ttk.Button(control_frame, text="Stop Training", command=self.stop_training).grid(row=7, column=1, columnspan=1,
+                                                                                         pady=10)
+
+        ttk.Button(control_frame, text="Export Metrics", command=self.export_metrics).grid(row=8, column=0,
+                                                                                           columnspan=2, pady=10)
 
     def create_side_panel(self):
         """Creates a side panel to test the best creature."""
@@ -119,6 +191,28 @@ class GeneticAlgorithmGUI:
         # Save best creature
         save_best_creature_btn = tk.Button(side_panel, text="Save Best Creature", command=self.save_best_creature)
         save_best_creature_btn.pack(pady=10)
+
+    def export_metrics(self):
+        try:
+            file_path = filedialog.asksaveasfilename(
+                title="Export Metrics",
+                filetypes=[("CSV Files", "*.csv")],
+                defaultextension=".csv"
+            )
+            if not file_path:
+                return
+
+            with open(file_path, 'w') as f:
+                f.write("Generation,Accuracy,Fitness\n")
+                for gen, fitness in zip(self.generation_data, self.accuracy_data):
+                    accuracy = 1 / (1 + fitness)
+                    f.write(f"{gen},{accuracy:.4f},{fitness:.4f}\n")
+
+            messagebox.showinfo("Success", f"Metrics exported to {file_path}")
+            logger.info(f"Metrics exported to {file_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export metrics: {e}")
+            logger.error(f"Error exporting metrics: {e}")
 
     def save_best_creature(self):
         fpth = filedialog.asksaveasfilename(title="Save Best Creature", filetypes=[("Numpy Array", ".npy")])
@@ -144,15 +238,14 @@ class GeneticAlgorithmGUI:
         except FileNotFoundError:
             messagebox.showwarning("Warning", "Population file not found")
 
-    def create_labeled_entry(self, frame, label_text, row, column, default_value=""):
-        """Helper function to create a labeled entry with default value and validation."""
-        label = tk.Label(frame, text=label_text)
-        label.grid(row=row, column=column - 1, padx=5, pady=5, sticky="e")
-        entry = tk.Entry(frame, validate="key")
-        entry.grid(row=row, column=column, padx=5, pady=5)
+    def create_labeled_entry(self, parent, label_text, attr_name, default_value="", row=0, column=0, span=2):
+        frame = ttk.Frame(parent)
+        frame.grid(row=row, column=column, columnspan=span, pady=10)
+        ttk.Label(frame, text=label_text).pack(side=tk.LEFT, padx=5)
+        entry = ttk.Entry(frame)
+        entry.pack(side=tk.RIGHT, expand=True, fill=tk.X, padx=5)
         entry.insert(0, default_value)
-        entry.config(validatecommand=(self.root.register(self.validate_integer), '%P'))
-        setattr(self, f"{label_text.split(':')[0].lower().replace(" ", "_")}_entry", entry)
+        setattr(self, attr_name, entry)
 
     @staticmethod
     def validate_integer(input_str: str) -> bool:
@@ -173,13 +266,62 @@ class GeneticAlgorithmGUI:
                 spec.loader.exec_module(module)
 
                 self.creature_class = getattr(module, "Creature", None)
+
+                if not self.creature_class:
+                    raise AttributeError(
+                        "The file must contain a Creature class object, derived from GeneticAlgorithmTrainNN.GeneticAlgorithm.Creature if possible")
+                messagebox.showinfo("Success", "Successfully loaded Creature class and data.")
+                self.creature_module_name = file_path.split("/")[-1].split(".")[0]
+                self.load_creature_btn.config(text="Unload creature", command=self.unload_creature_file)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load file: {e}")
+                logger.error(f"Error loading file: {e}")
+
+    def unload_creature_file(self):
+        if not self.creature_module_name is None:
+            try:
+                print(sys.modules)
+                del self.creature_class
+                del sys.modules[self.creature_module_name]
+                logger.info(f"Unloaded {self.creature_module_name}")
+                self.creature_module_name = None
+                self.creature_class = None
+                self.load_creature_btn.config(text="Load creature", command=self.load_creature_file)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to unload module: {e}")
+                logger.error(f"Failed to unload module: {e}")
+
+    def unload_inputs_outputs(self):
+        if not (self.io_module_name is None):
+            try:
+                del self.inputs
+                del self.outputs
+                del sys.modules[self.io_module_name]
+                logger.info(f"Unloaded {self.io_module_name}")
+                self.io_module_name = None
+                self.inputs = None
+                self.outputs = None
+                self.load_io_btn.config(text="Load Inputs/Outputs", command=self.load_inputs_outputs)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to unload module: {e}")
+                logger.error(f"Failed to unload module: {e}")
+
+    def load_inputs_outputs(self):
+        file_path = filedialog.askopenfilename(title="Select Inputs and Outputs Python File",
+                                               filetypes=[("Python files", "*.py")])
+        if file_path:
+            try:
+                spec = importlib.util.spec_from_file_location("custom_module", file_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
                 self.inputs = getattr(module, "INPUTS", None)
                 self.outputs = getattr(module, "OUTPUTS", None)
-
-                if not self.creature_class or not self.inputs or not self.outputs:
-                    raise AttributeError("The file must contain 'Creature', 'INPUTS', and 'OUTPUTS'.")
-                messagebox.showinfo("Success", "Successfully loaded Creature class and data.")
-                self.load_strvar.set("Load Creature File (loaded)")
+                self.io_module_name = file_path
+                if not self.inputs or not self.outputs:
+                    raise AttributeError("The file must contain 'INPUTS', and 'OUTPUTS'.")
+                self.load_io_btn.config(text="Unload Inputs/Outputs", command=self.unload_inputs_outputs)
+                messagebox.showinfo("Success", "Successfully loaded inputs and outputs.")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {e}")
 
@@ -206,49 +348,63 @@ class GeneticAlgorithmGUI:
         if not hasattr(self, 'creature_class') or not self.inputs or not self.outputs:
             messagebox.showwarning("Warning", "Please load a valid Creature file before starting.")
             return
-        self.ga = GeneticAlgorithm(population_size=population_size, creature_class=self.creature_class)
+        self.ga = GeneticAlgorithm(
+            population_size=population_size,
+            creature_class=self.creature_class,
+            reverse_fitness=self.creature_class.reverse_fitness,
+        )
         if not self.population is None:
             self.ga.population = self.population
+        print(generations)
         self.generations = generations
         self.progress_bar['maximum'] = self.generations
-
+        logger.info(
+            f"Training started with Population Size: {population_size}, Generations: {generations}, Epochs: {epochs}")
         self.generation_data = []
         self.accuracy_data = []
         self.progress_bar['value'] = 0
-
         self.start()
+
+        # Create a log of the initial population
+        for idx, creature in enumerate(self.ga.population):
+            logger.debug(f"Initial Population - Creature {idx + 1}: Fitness={creature.get_fitness()}")
+
         threading.Thread(target=self.run_genetic_algorithm).start()
 
     def run_genetic_algorithm(self):
         """Run the genetic algorithm in a separate thread to keep GUI responsive."""
         for gen in range(1, self.generations + 1):
             if not self.running:
+                logger.warning(f"Training stopped manually at Generation {gen}")
                 break
 
             index = randint(0, len(self.inputs) - 1)
             self.ga.evolve(input_=self.inputs[index], expected_output=self.outputs[index])
+            logger.info(f"Generation {gen}: Best Fitness={self.ga.best_fitness}, Best Output={self.ga.best_output}")
 
             self.out_strvar.set(f"Current: {self.ga.best_output} / Expected: {self.outputs[index]}")
             self.accuracy_strvar.set(f"Accuracy: {1 / (1 + self.ga.best_fitness)}")
-            self.progress_bar['value'] = gen
-            self.update_progress(gen)
+            self.update_progress(gen, self.generations)
             self.update_plot()
-
+        logger.info("Training completed.")
         messagebox.showinfo("Training Complete", "Genetic Algorithm training is complete!")
 
-    def update_progress(self, step):
-        """Update generation and accuracy data for plotting."""
+    def update_progress(self, step, total):
+        progress = int((step / total) * 100)
+        self.progress_bar['value'] = step
+        self.progress_percent_strvar.set(f"Progress: {progress}%")
+
         self.generation_data.append(step)
         self.accuracy_data.append(self.ga.best_fitness)
+        logger.info(f"Progress updated: {progress}%")
 
     def update_plot(self):
-        """Update the plot with new data."""
-        self.accuracy_line.set_data(self.generation_data, self.accuracy_data)
-        self.ax.relim()
-        self.ax.autoscale_view()
+        self.ax.clear()
+        self.ax.plot(self.generation_data, self.accuracy_data, 'r-', label="Best Fitness")
         self.ax.set_title("Accuracy Over Generations")
         self.ax.set_xlabel("Generation")
-        self.ax.set_ylabel("Accuracy")
+        self.ax.set_ylabel("Fitness")
+        self.ax.legend(loc="upper right")
         self.canvas.draw()
 
     def test_best_creature(self):
@@ -269,7 +425,6 @@ class GeneticAlgorithmGUI:
             self.test_output_strvar.set(f"Error: {str(e)}")
 
     def run(self):
-        """Start Tkinter main loop."""
         self.root.mainloop()
 
 
