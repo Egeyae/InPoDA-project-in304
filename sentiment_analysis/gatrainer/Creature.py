@@ -24,6 +24,7 @@ class Creature(ABC):
     For the different use cases, the programmer will define a subclass of Creature, providing specific functions, fitness computation, etc
     """
     reverse_fitness = False  # by default, higher fitness is better
+    batch_size = 1
 
     def __init__(self):
         self.dna = None

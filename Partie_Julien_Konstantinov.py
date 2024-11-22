@@ -114,7 +114,7 @@ def topics(jason):
         topic=topic_model.transform(jason[i]["text"])
         topic_list.append(topic)
     for j in range(len(topic_list)):
-        print("Le sujet du tweet n°"+j+"est : "+topic_list[j])
+        print("Le sujet du tweet n°"+str(j)+" est : "+str(topic_list[j]))
     return topic_list
 
 
@@ -130,6 +130,5 @@ def main(path):
     return
 
 
-#print(main('versailles_tweets_100.json'))
-print(topics(file_open('versailles_tweets_100.json')))
+print(main('versailles_tweets_100.json'))
 

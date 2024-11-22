@@ -4,9 +4,8 @@ import logging
 import os
 from datetime import datetime
 import importlib.util
-from GeneticAlgorithm import GeneticAlgorithm
-from numpy import round as np_round
 import time
+from gatrainer.GeneticAlgorithm import GeneticAlgorithm
 
 
 # Log file setup

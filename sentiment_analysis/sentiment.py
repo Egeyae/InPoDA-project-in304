@@ -1,6 +1,6 @@
 from abc import ABC
 
-from GeneticAlgorithm import Creature
+from gatrainer.Creature import Creature
 
 # GeneticAlgorithm already import cupy or numpy but in case of modifications:
 try:
@@ -23,6 +23,7 @@ logger.info(f"GPU available: {HAS_GPU}")
 
 class SentimentCreature(Creature, ABC):
     reverse_fitness = True  # we do 1/x so the closer to 1, the better
+    batch_size = 3
 
     def __init__(self, layers, dna=None, noDNA=False):
         super().__init__()
@@ -98,7 +99,7 @@ class SentimentCreature(Creature, ABC):
 
     @staticmethod
     def create_creature(dna=None):
-        return SentimentCreature(layers=[4, 8, 8, 3], dna=dna)
+        return SentimentCreature(layers=[4, 8, 5, 3], dna=dna)
 
     @staticmethod
     def load_from_file(filepath):

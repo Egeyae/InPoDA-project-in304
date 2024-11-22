@@ -1,8 +1,11 @@
 import random
 import pickle
 import logging
-from numpy import round as np_round
-from Creature import Creature
+from typing import Any
+
+from numpy import round as np_round, ndarray, dtype, floating
+from gatrainer.Creature import Creature
+from numpy._typing import _64Bit
 
 try:
     import cupy as np
@@ -30,6 +33,7 @@ class GeneticAlgorithm:
         self.population_size = population_size
         self.creature_class = creature_class
         self.reverse_fitness = reverse_fitness or creature_class.reverse_fitness
+        self.batch_size = creature_class.batch_size
 
         # we check if the selection methods used are supported
         # for the moment, only elitism and roulette methods are supported
@@ -107,13 +111,18 @@ class GeneticAlgorithm:
 
         return new_population[:max_size]
 
-    def compute_fitness(self, input_, output):
-        population_size = len(self.population)
-        i = 0
-        while i < population_size:
-            self.population[i].process(input_)
-            self.population[i].fitness(output)
-            i += 1
+    def compute_fitness(self, input_, output) -> ndarray[Any, dtype[floating[_64Bit]]]:
+        pop_fitness_array = np.zeros(self.population_size)
+
+        for _ in range(self.batch_size):
+            i = 0
+            while i < self.population_size:
+                self.population[i].process(input_)
+                self.population[i].fitness(output)
+                pop_fitness_array[i] += self.population[i].get_fitness()
+                i += 1
+
+        return pop_fitness_array
 
     def evolve(self, input_=None, expected_output=None):
         """Run one generation of the genetic algorithm."""
@@ -122,11 +131,11 @@ class GeneticAlgorithm:
         expected_output = np.asarray(expected_output)
 
         # evaluate fitness for the population
-        self.compute_fitness(input_, expected_output)
+        fitness = self.compute_fitness(input_, expected_output)
 
         # sort population by fitness
-        self.population = [creature for creature in
-                           sorted(self.population, reverse=not self.reverse_fitness, key=lambda x: x.get_fitness())]
+        self.population = [creature[0] for creature in
+                           sorted(zip(self.population, fitness), reverse=not self.reverse_fitness, key=lambda x: x[1])]
 
         # track the best creature (for an interface)
         self.best_creature = self.population[0]
