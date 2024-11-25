@@ -5,7 +5,7 @@ import logging
 from transformers import AutoTokenizer, AutoModel
 import numpy as np
 import torch
-
+from multiprocessing import Pool
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")
 
 # Load model and tokenizer
-MODEL = "xlm-roberta-base"
+MODEL = "distilbert-base-multilingual-cased"
 logger.info("Loading model and tokenizer...")
 model = AutoModel.from_pretrained(MODEL).to(device)
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
@@ -81,7 +81,7 @@ def process_chunk(chunk_df: pd.DataFrame, idx: int) -> None:
         gc.collect()
 
 
-def load_and_split_data(file_path: str, chunk_size: int = 10_000) -> None:
+def load_and_split_data(file_path: str, chunk_size: int = 1_000) -> None:
     """Load raw data and process it in manageable chunks."""
     if not os.path.exists(file_path):
         logger.error(f"File {file_path} not found.")
@@ -92,10 +92,22 @@ def load_and_split_data(file_path: str, chunk_size: int = 10_000) -> None:
     ensure_directory_exists("./data/")
 
     # Read data in chunks directly using pandas
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
-        chunk_iterator = pd.read_csv(file, chunksize=chunk_size)
-        for idx, chunk_df in enumerate(chunk_iterator):
-            process_chunk(chunk_df, idx)
+    with Pool(4) as p:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            size = len(f.read().splitlines()) - 1
+            size //= chunk_size
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
+
+            chunk_iterator = pd.read_csv(file, chunksize=chunk_size)
+
+            for idx, chunk_df in enumerate(chunk_iterator):
+
+                if idx < 5 or idx > size-6: # only process the first 5 and the last 5
+                    print(idx)
+                    p.apply_async(process_chunk, args=(chunk_df, idx))
+
+        p.close()
+        p.join()
 
     logger.info("Data processing complete.")
 
