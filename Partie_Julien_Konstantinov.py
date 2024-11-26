@@ -106,16 +106,27 @@ def users_list(jason):
     return
 
 
+
 def topics(jason):
-    topic_list=[]
-    topic_model=BERTopic.load("MaartenGr/BERTopic_Wikipedia")
+
+    with open('Topics_list.json') as file:
+        topics_dico=json.load(file)
+
+    model = BERTopic()
+    print("Domaines détectés pour chaque phrase :")
     length=len(jason)
     for i in range(0,length):
-        topic=topic_model.transform(jason[i]["text"])
-        topic_list.append(topic)
-    for j in range(len(topic_list)):
-        print("Le sujet du tweet n°"+j+"est : "+topic_list[j])
-    return topic_list
+        topic = model.fit_transform(jason[i]["text"])
+        domain = topics_dico.get(topic, "Inconnu")  
+        print(f"Phrase : {jason[i]["text"]}")
+        print(f" - Sujet détecté : {topic}")
+        print(f" - Domaine général : {domain}")
+        print()
+
+    print("Détails sur les sujets et mots-clés associés :")
+    for topic_id in set(topics):
+        print(f"Sujet {topic_id} : {model.get_topic(topic_id)}")
+    return
 
 
 
@@ -127,9 +138,9 @@ def main(path):
     print(hashtags_list(jason))
     print(users_list(jason))
     print(topics(jason))
+
     return
 
 
-#print(main('versailles_tweets_100.json'))
-print(topics(file_open('versailles_tweets_100.json')))
+print(main('versailles_tweets_100.json'))
 
