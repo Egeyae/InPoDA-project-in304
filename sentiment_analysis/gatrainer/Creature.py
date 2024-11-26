@@ -29,6 +29,7 @@ class Creature(ABC):
     def __init__(self):
         self.dna = None
         self._output = None
+        self._fitness = None
 
     def save_to_file(self, path):
         """Save DNA to a file."""

@@ -26,14 +26,14 @@ class GeneticAlgorithm:
     SELECTION_METHODS = ("elitism", "roulette")
 
     def __init__(self, population_size: int, creature_class: Creature, reverse_fitness: bool = False,
-                 selection_methods: tuple[str] = ("elitism", "roulette")):
+                 selection_methods: tuple[str] = ("elitism", "roulette"), batch_size: int = 1,):
         if not issubclass(creature_class, Creature):
             raise TypeError("creature_class must be a subclass of Creature.")
 
         self.population_size = population_size
         self.creature_class = creature_class
         self.reverse_fitness = reverse_fitness or creature_class.reverse_fitness
-        self.batch_size = creature_class.batch_size
+        self.batch_size = batch_size or creature_class.batch_size
 
         # we check if the selection methods used are supported
         # for the moment, only elitism and roulette methods are supported

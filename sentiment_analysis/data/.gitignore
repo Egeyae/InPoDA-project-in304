@@ -1,2 +1,1 @@
-./chunk*
-./raw_sentiment140.csv
+*.csv
