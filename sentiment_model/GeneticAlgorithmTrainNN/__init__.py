@@ -1,2 +1,0 @@
-from GeneticAlgorithmGUI import GeneticAlgorithmGUI
-from GeneticAlgorithm import Creature, GeneticAlgorithm
