@@ -23,7 +23,7 @@ data_config = {
     "output_dir": "./data/chunks/",
     "raw_data_file": "./data/raw_sentiment140.csv",
     "raw_compressed_file": "./data/raw_sentiment140.csv.zip",
-    "chunk_size": 10000
+    "chunk_size": 1000
 }
 
 ga_config = {
@@ -35,19 +35,17 @@ ga_config = {
         "save_dir": "./models/"
 }
 
-create = False
-chunks = -1
+create = True
+chunks = 1
 
 if __name__ == "__main__":
     logger.info("Loading data pipeline")
     data_pipeline = SentimentAnalysisDataPipeline(config=data_config)
     if create:
-        data_pipeline.run()
-    data = data_pipeline.load_chunks(num_chunks=chunks)
+        data_pipeline.run(num_chunks=chunks)
+    data = data_pipeline.load_clean_chunks(num_chunks=chunks)
     logger.info("Data pipeline loaded")
     logger.info("Loading GA pipeline")
     ga_pipeline = GeneticAlgorithmPipeline(config=ga_config, creature_class=SentimentCreature)
     logger.info("GA pipeline loaded")
-    print(data["embeddings"].tolist()[0])
-    pass
     ga_pipeline.train(inputs=data['embeddings'].tolist(), expected_outputs=data['sentiment'].tolist())

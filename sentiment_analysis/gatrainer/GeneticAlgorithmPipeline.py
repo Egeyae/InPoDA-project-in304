@@ -19,7 +19,7 @@ class GeneticAlgorithmPipeline:
         "elitism_percentage": 0.2,
         "mutation_rate": 0.05,
         "max_epochs": 100,
-        "early_stopping": {"enabled": True, "patience": 50, "min_delta": 1e-4},
+        "early_stopping": {"enabled": True, "patience": 20, "min_delta": 1e-4},
         "save_dir": "./models/",
     }
 

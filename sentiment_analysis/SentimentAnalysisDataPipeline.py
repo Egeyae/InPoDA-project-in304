@@ -63,9 +63,14 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
             del chunk
             gc.collect()
 
-    def run(self):
+    def load_clean_chunks(self, num_chunks: int = -1):
+        df = self.load_chunks(num_chunks)
+        df["embeddings"] = df["embeddings"].apply(lambda x: x.astype(np.float16))
+        return df
+
+    def run(self, num_chunks: int = -1):
         """Run the full pipeline."""
         raw_file = self.config.get("raw_data_file", "./data/raw_data.csv")
         chunk_size = self.config.get("chunk_size", 1000)
-        self.process_data(raw_file, chunk_size)
+        self.process_data(raw_file, chunk_size, num_chunks=num_chunks)
 

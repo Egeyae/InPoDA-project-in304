@@ -90,7 +90,7 @@ class AbstractDataPipeline(ABC):
                 self.logger.info(f"Couldn't find any valid archive file, searched: {self.config['raw_compressed_file']}")
                 raise FileNotFoundError(f"Couldn't find any valid archive file, searched: {self.config['raw_data_file']}")
 
-    def process_data(self, file_path: str, chunk_size: int) -> None:
+    def process_data(self, file_path: str, chunk_size: int, num_chunks: int = -1) -> None:
         """
         Process data from a file in chunks.
         Uses multiprocessing to handle large datasets.
@@ -99,8 +99,14 @@ class AbstractDataPipeline(ABC):
         self.logger.info(f"Processing data from {file_path}...")
         with Pool(self.config.get("num_workers", 4)) as pool:
             with pd.read_csv(file_path, chunksize=chunk_size) as reader:
-                for idx, chunk in enumerate(reader):
-                    pool.apply_async(self.process_chunk, args=(chunk, idx))
+                if num_chunks <= 0:
+                    for idx, chunk in enumerate(reader):
+                        pool.apply_async(self.process_chunk, args=(chunk, idx))
+                else:
+                    size = sum(1 for _ in open(file_path).readlines()) // chunk_size # number of lines over chunk size
+                    for idx, chunk in enumerate(reader):
+                        if idx < num_chunks or idx > size-1-num_chunks:
+                            pool.apply_async(self.process_chunk, args=(chunk, idx))
             pool.close()
             pool.join()
         self.logger.info("Data processing complete.")
@@ -114,6 +120,9 @@ class AbstractDataPipeline(ABC):
             [f for f in os.listdir(output_dir) if f.startswith("chunk")],
             key=lambda x: int(x.split(".")[0].split("k")[1])
         )
+        if len(chunk_files) == 0:
+            self.logger.error(f"No chunks found in {output_dir}.")
+            raise FileNotFoundError(f"No chunks found in {output_dir}.")
         if num_chunks > 0:
             chunk_files = chunk_files[:num_chunks] + chunk_files[-num_chunks:]
         self.logger.info(f"Loading {len(chunk_files)} chunks...")
@@ -124,6 +133,7 @@ class AbstractDataPipeline(ABC):
             dataframes.append(pd.read_csv(file_path))
 
         self.logger.info("Chunks loaded successfully.")
+
         return pd.concat(dataframes, ignore_index=True)
 
     def clear_chunks(self) -> None:

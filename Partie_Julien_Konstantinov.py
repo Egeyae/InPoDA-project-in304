@@ -190,6 +190,7 @@ def main(path):
     topic_model, topics, probs = train_topic_model(phrases_dict)
     print("Modèle entraîné avec succès.")
     new_phrase = input("Entrez une nouvelle phrase pour identifier son sujet : ")
+    new_phrase = "".join([x for x in new_phrase.split() if not x.startswith("#")])
     topic_id, topic_name = find_topic_for_new_phrase(topic_model, new_phrase, topics_dict)
     
     print(f"Sujet identifié : {topic_name} (ID: {topic_id})")
