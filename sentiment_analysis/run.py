@@ -23,11 +23,11 @@ data_config = {
     "output_dir": "./data/chunks/",
     "raw_data_file": "./data/raw_sentiment140.csv",
     "raw_compressed_file": "./data/raw_sentiment140.csv.zip",
-    "chunk_size": 1000
+    "chunk_size": 20
 }
 
 ga_config = {
-        "population_size": 500,
+        "population_size": 100,
         "elitism_percentage": 0.2,
         "mutation_rate": 0.05,
         "max_epochs": 100,

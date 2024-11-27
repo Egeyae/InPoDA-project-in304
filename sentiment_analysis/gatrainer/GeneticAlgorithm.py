@@ -16,17 +16,14 @@ except ImportError:
 
     HAS_GPU = False
 
-# configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.NullHandler())
-
 
 class GeneticAlgorithm:
     SELECTION_METHODS = ("elitism", "roulette")
 
     def __init__(self, population_size: int, creature_class: Creature, reverse_fitness: bool = False,
                  selection_methods: tuple[str] = ("elitism", "roulette"), batch_size: int = 1,):
+        self.logger = None
+        self.set_logger()
         if not issubclass(creature_class, Creature):
             raise TypeError("creature_class must be a subclass of Creature.")
 
@@ -50,6 +47,10 @@ class GeneticAlgorithm:
         self.best_creature = None
         self.best_output = None
         self.best_fitness = None
+
+    def set_logger(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.addHandler(logging.NullHandler())
 
     @staticmethod
     def load_from_file(file_path: str):
@@ -81,7 +82,6 @@ class GeneticAlgorithm:
 
         total_fitness = sum(creature.get_fitness() for creature in sorted_population)
         if total_fitness == 0:
-            logger.warning("Total fitness is zero; roulette selection cannot proceed.")
             return new_population
 
         def pick_parent():
@@ -163,5 +163,11 @@ class GeneticAlgorithm:
 
     def epoch(self, inputs_: list = None, expected_outputs: list = None):
         """Run multiple generations for a batch of inputs and expected outputs."""
+        i = 0
+        random.shuffle(inputs_)
+        random.shuffle(expected_outputs)
         for input_, expected_output in zip(inputs_ or [], expected_outputs or []):
+            self.logger.info(f"Evolving generation {i}")
             self.evolve(input_, expected_output)
+            self.logger.info(f"Generation {i} done. Fitness:{self.best_fitness}  /  Output:{self.best_output}  /  Expected:{expected_output}")
+            i += 1

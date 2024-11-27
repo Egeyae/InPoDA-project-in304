@@ -88,6 +88,7 @@ if __name__ == "__main__":
         "Au moins on est d'accord, le réchauffement climatique c'est du flan",
         "J'aime les enfants.",
         "J'aime mes enfants et ma femme, je suis heureux, aimant et aimé",
+        "Vive les illuminatis, ceux ki on construie babilaun"
     ]
 
     # Define potential topics

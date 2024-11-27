@@ -45,6 +45,17 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
                 embeddings.append(cls_embeddings)
         return np.vstack(embeddings)
 
+
+    def compute_sentiment_arrays(self, sentiments: list[str]) -> np.ndarray:
+        array = []
+        for sentiment in sentiments:
+            if sentiment == "0" or sentiment == 0: # negative
+                array.append(np.array([1, 0]))
+            else:
+                array.append(np.array([0, 1]))
+
+        return np.array(array)
+
     def process_chunk(self, chunk: pd.DataFrame, idx: int) -> None:
         """Process a single chunk of data."""
         try:
@@ -53,6 +64,10 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
             texts = chunk["text"].tolist()
             embeddings = self.compute_embeddings(texts)
             chunk["embeddings"] = [embedding.tolist() for embedding in embeddings]
+            sentiments = self.compute_sentiment_arrays(chunk["sentiment"].tolist())
+            chunk["sentiment"] = [sentiment.tolist() for sentiment in sentiments]
+
+            chunk.drop(columns=["id", "date", "query", "user"])
             output_path = os.path.join(self.config["output_dir"], f"chunk{idx}.csv")
             chunk.to_csv(output_path, index=False)
             self.logger.info(f"Chunk {idx} saved to {output_path}.")
@@ -63,9 +78,14 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
             del chunk
             gc.collect()
 
+    def str_embed_to_np_array(self, array):
+        l = eval(array)
+        return np.array(l, dtype=np.float16)
+
     def load_clean_chunks(self, num_chunks: int = -1):
         df = self.load_chunks(num_chunks)
-        df["embeddings"] = df["embeddings"].apply(lambda x: x.astype(np.float16))
+        df["embeddings"] = df["embeddings"].apply(lambda x: self.str_embed_to_np_array(x))
+        df["sentiment"] = df["sentiment"].apply(lambda x: self.str_embed_to_np_array(x))
         return df
 
     def run(self, num_chunks: int = -1):

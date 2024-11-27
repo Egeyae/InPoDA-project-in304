@@ -27,7 +27,6 @@ class SentimentCreature(Creature, ABC):
 
     def __init__(self, layers, dna=None, noDNA=False):
         super().__init__()
-
         self.layers = layers
         self.mutation_rate = 0.01
         self.mutation_strength = 0.5
@@ -70,6 +69,7 @@ class SentimentCreature(Creature, ABC):
 
     def fitness(self, expected_output=None):
         """Evaluate the creature's fitness."""
+        #print(expected_output, self._output)
         if expected_output is not None:
             self._fitness = np.linalg.norm(expected_output - self._output)
 
@@ -100,7 +100,7 @@ class SentimentCreature(Creature, ABC):
     @staticmethod
     def create_creature(dna=None):
         """Create a new SentimentCreature with the given DNA."""
-        return SentimentCreature(layers=[4, 8, 5, 3], dna=dna)
+        return SentimentCreature(layers=[768, 400, 400, 100, 2], dna=dna)
 
     @staticmethod
     def load_from_file(filepath):
