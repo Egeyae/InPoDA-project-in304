@@ -42,25 +42,6 @@ class AbstractDataPipeline(ABC):
         for k in config.keys():
             self.config[k] = config[k]
 
-    def save_config(self, file_name="data_config.json"):
-        """
-        Save the current pipeline configuration to a JSON file.
-        :param file_name: The name of the configuration file.
-        """
-        path = os.path.join(self.config["config_dir"], file_name)
-        with open(path, "w") as file:
-            json.dump(self.config, file, indent=4)
-        self.logger.info(f"Saved configuration to {path}.")
-
-    def load_config(self, file_path):
-        """
-        Load configuration from a JSON file.
-        :param file_path: The path to the configuration file.
-        """
-        with open(file_path, "r") as file:
-            self.config = json.load(file)
-        self.logger.info(f"Loaded configuration from {file_path}.")
-
     @abstractmethod
     def preprocess(self, data: pd.DataFrame) -> pd.DataFrame:
         """

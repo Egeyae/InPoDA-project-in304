@@ -1,4 +1,3 @@
-import logging
 from abc import ABC, abstractmethod
 
 # if CUDA is installed, then cupy can be used to make the program faster
@@ -11,11 +10,6 @@ except ImportError:
     import numpy as np
 
     HAS_GPU = False
-
-# configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.NullHandler())
 
 
 class Creature(ABC):

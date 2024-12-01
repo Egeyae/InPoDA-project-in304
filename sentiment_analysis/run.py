@@ -14,7 +14,7 @@ logger.info("Start of training")
 
 from SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
-from sentiment import SentimentCreature
+from SentimentCreature import SentimentCreature
 
 data_config = {
     "model_name": "distilbert-base-multilingual-cased",

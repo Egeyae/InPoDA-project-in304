@@ -6,6 +6,7 @@ from gatrainer.GeneticAlgorithm import GeneticAlgorithm
 from gatrainer.Creature import Creature
 
 
+# noinspection PyUnresolvedReferences
 class GeneticAlgorithmPipeline:
     """
     A pipeline for training and testing neural networks using Genetic Algorithm (GA).
@@ -129,25 +130,6 @@ class GeneticAlgorithmPipeline:
         """
         self.ga = GeneticAlgorithm.load_from_file(file_path)
         self.logger.info(f"Loaded GA from {file_path}.")
-
-    def save_config(self, file_name="ga_config.json"):
-        """
-        Save the current pipeline configuration to a JSON file.
-        :param file_name: The name of the configuration file.
-        """
-        path = os.path.join(self.config["save_dir"], file_name)
-        with open(path, "w") as file:
-            json.dump(self.config, file, indent=4)
-        self.logger.info(f"Saved configuration to {path}.")
-
-    def load_config(self, file_path):
-        """
-        Load configuration from a JSON file.
-        :param file_path: The path to the configuration file.
-        """
-        with open(file_path, "r") as file:
-            self.config = json.load(file)
-        self.logger.info(f"Loaded configuration from {file_path}.")
 
     def set_config(self, config):
         self.config = self.DEFAULT_CONFIG
