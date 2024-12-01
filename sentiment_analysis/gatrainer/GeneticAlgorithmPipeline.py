@@ -2,8 +2,8 @@ import logging
 import os
 import json
 
-from gatrainer.GeneticAlgorithm import GeneticAlgorithm
-from gatrainer.Creature import Creature
+from .GeneticAlgorithm import GeneticAlgorithm
+from .Creature import Creature
 
 
 # noinspection PyUnresolvedReferences

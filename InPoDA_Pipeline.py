@@ -111,6 +111,7 @@ class InPoDAPipeline:
         logging = Logging(level=level, log_file=log_file, console_logger=console_logger, format_string=format_string)
         self.logger = logging.get_logger()
 
+    # sentiment analysis
     # training functions
     def load_training_data(self):
         pass
@@ -131,6 +132,7 @@ class InPoDAPipeline:
     def process_input(self):
         pass
 
+    # extraction
     # tweets loading and processing
     def load_tweets(self):
         pass

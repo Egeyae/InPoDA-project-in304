@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from numpy import round as np_round, ndarray, dtype, floating
-from gatrainer.Creature import Creature
+from .Creature import Creature
 from numpy._typing import _64Bit
 
 try:
