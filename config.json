@@ -1,20 +1,21 @@
 {
   "model": {
     "folder": "./model/",
-    "path": "sentiment.model"
+    "path": "sentiment.pkl"
   },
   "training": {
     "ga_config": {
-      "population_size": 100,
+      "population_size": 30,
       "elitism_percentage": 0.2,
       "mutation_rate": 0.05,
       "max_epochs": 100,
       "early_stopping": {
         "enabled": true,
-        "patience": 50,
-        "min_delta": 1e-4
+        "patience": 15,
+        "min_delta": 0.00001
       },
-      "save_dir": "./models/"
+      "save_dir": "./models/",
+      "model_name": "sentiment.model"
     },
     "data_config": {
       "model_name": "distilbert-base-multilingual-cased",
@@ -28,7 +29,8 @@
   },
   "logging": {
     "streamhandler": true,
-    "filehandler": "inpoda.log",
+    "filehandler": false,
+    "filehandler_file": "inpoda.log",
     "format": "[%(asctime)s] ::%(name)s:: (%(levelname)s) - %(message)s",
     "level": "debug"
   }

@@ -1,3 +1,4 @@
+import pickle
 from abc import ABC, abstractmethod
 
 # if CUDA is installed, then cupy can be used to make the program faster
@@ -27,13 +28,14 @@ class Creature(ABC):
 
     def save_to_file(self, path):
         """Save DNA to a file."""
-        np.save(path, self.dna)
+        with open(path, "wb") as f:
+            pickle.dump(self.dna, f)
 
     @staticmethod
     def load_from_file(file_path):
         """Load DNA from a file and create a creature."""
-        dna = np.load(file_path)
-        return Creature.create_creature(dna=dna)
+        with open(file_path, "rb") as f:
+            return pickle.load(f)
 
     @staticmethod
     @abstractmethod

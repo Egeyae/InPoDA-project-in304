@@ -1,9 +1,10 @@
 import logging
 import os
 import json
-
+from random import randint
 from .GeneticAlgorithm import GeneticAlgorithm
 from .Creature import Creature
+import pickle
 
 
 # noinspection PyUnresolvedReferences
@@ -22,6 +23,8 @@ class GeneticAlgorithmPipeline:
         "max_epochs": 100,
         "early_stopping": {"enabled": True, "patience": 20, "min_delta": 1e-4},
         "save_dir": "./models/",
+        "model_name": "best_model.pkl",
+        "training_sample_size": 5
     }
 
     def __init__(self, creature_class, config: dict=None):
@@ -34,8 +37,10 @@ class GeneticAlgorithmPipeline:
         self.set_logger()
         self.logger.info("Initializing GeneticAlgorithmPipeline...")
 
-        if not issubclass(creature_class, Creature):
-            raise TypeError("creature_class must be a subclass of Creature.")
+        # if not issubclass(creature_class, Creature):
+        #     self.logger.error("creature_class is not a subclass of Creature")
+        #     self.logger.error(f"creature_class = {creature_class}")
+        #     raise TypeError("creature_class must be a subclass of Creature.")
 
         self.set_config(config)
 
@@ -45,6 +50,7 @@ class GeneticAlgorithmPipeline:
             creature_class=creature_class,
             selection_methods=self.config["selection_methods"],
         )
+        self.best_creature = None
         self.history = []
 
         # Ensure save directory exists
@@ -64,29 +70,43 @@ class GeneticAlgorithmPipeline:
         :param inputs: A list of input data batches.
         :param expected_outputs: A list of corresponding expected outputs for the inputs.
         """
-        patience = self.config["early_stopping"]["patience"]
-        min_delta = self.config["early_stopping"]["min_delta"]
-        best_fitness = None
-        no_improvement = 0
+        try:
+            patience = self.config["early_stopping"]["patience"]
+            min_delta = self.config["early_stopping"]["min_delta"]
+            best_fitness = -1
+            no_improvement = 0
 
-        for epoch in range(self.config["max_epochs"]):
-            self.ga.epoch(inputs, expected_outputs)
+            # avoids to run on all the inputs, just a portion of it
+            training_sample_size = self.config["training_sample_size"]
 
-            # Track and log the best fitness
-            current_best_fitness = self.ga.best_fitness
-            self.logger.info(f"Epoch {epoch + 1}: Best Fitness = {current_best_fitness:.4f}")
-            self.history.append(current_best_fitness)
+            for epoch in range(self.config["max_epochs"]):
+                indexes = [randint(0, len(inputs) - 1) for _ in range(training_sample_size)]
+                sample_inputs = [inputs[i] for i in indexes]
+                sample_outputs = [expected_outputs[i] for i in indexes]
+                self.logger.info(f"Starting epoch {epoch}")
+                self.ga.epoch(sample_inputs, sample_outputs)
 
-            # Early stopping
-            if best_fitness is None or (current_best_fitness - best_fitness) > min_delta:
-                best_fitness = current_best_fitness
-                no_improvement = 0
-            else:
-                no_improvement += 1
+                # Track and log the best fitness
+                current_best_fitness = self.ga.best_fitness
+                self.logger.info(f"Epoch {epoch + 1}: Best Fitness = {current_best_fitness:.8f}")
+                self.history.append(current_best_fitness)
 
-            if self.config["early_stopping"]["enabled"] and no_improvement >= patience:
-                self.logger.info(f"Early stopping at epoch {epoch + 1}.")
-                break
+                # Early stopping
+                if (current_best_fitness - best_fitness) < min_delta:
+                    no_improvement += 1
+                else:
+                    no_improvement = 0
+
+                if self.config["early_stopping"]["enabled"] and no_improvement >= patience:
+                    self.logger.info(f"Early stopping at epoch {epoch + 1} due to no improvement.")
+                    break
+        except KeyboardInterrupt:
+            self.logger.info("Early stopping due to keyboard interrupt.")
+            self.best_creature = self.ga.best_creature
+        except Exception as e:
+            self.logger.error(f"Could not train Genetic Algorithm: {e}")
+        else:
+            self.best_creature = self.ga.best_creature
 
     def evaluate(self, test_inputs, test_outputs):
         """
@@ -96,22 +116,24 @@ class GeneticAlgorithmPipeline:
         :return: Evaluation metrics such as accuracy or loss.
         """
         self.logger.info("Evaluating the best creature...")
-        best_creature = self.ga.best_creature
+        if not self.best_creature:
+            self.logger.error("No best creature found for evaluation. Genetic Algorithm has to be trained first.")
+            return
 
         metrics = {"accuracy": 0.0}
         for input_, output in zip(test_inputs, test_outputs):
-            best_creature.process(input_)
-            best_creature.fitness(expected_output=output)
+            self.best_creature.process(input_)
+            self.best_creature.fitness(expected_output=output)
             if self.ga.reverse_fitness:  # 0 is better
-                accuracy = 1 / (1 + best_creature.get_fitness())
+                accuracy = 1 / (1 + self.best_creature.get_fitness())
             else:
-                accuracy = best_creature.get_fitness()  # bigger is better
+                accuracy = self.best_creature.get_fitness()  # bigger is better
 
             metrics["accuracy"] += accuracy
 
         metrics["accuracy"] /= len(test_inputs)
 
-        self.logger.info(f"Evaluation Results: {metrics}")
+        self.logger.info(f"Evaluation Results: {metrics}" + " (closer to 1 is better)" if self.ga.reverse_fitness else " (bigger is better)")
         return metrics
 
     def save(self, file_name="genetic_algorithm.pkl"):
@@ -135,3 +157,20 @@ class GeneticAlgorithmPipeline:
         self.config = self.DEFAULT_CONFIG
         for k in config.keys():
             self.config[k] = config[k]
+
+    def save_best_model(self):
+        if not self.best_creature:
+            self.logger.error("No best creature found. Genetic Algorithm has to be trained first.")
+            return
+        self.best_creature.save_to_file(os.path.join(self.config["save_dir"], self.config["model_name"]))
+
+    def load_best_model(self):
+        try:
+            print("loaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaading")
+            self.best_creature = self.creature_class.load_from_file(os.path.join(self.config["save_dir"], self.config["model_name"]))
+            self.logger.info("Loaded best model")
+        except FileNotFoundError:
+            self.best_creature = None
+            self.logger.error("Couldn't load best model as it couldn't be found")
+        except Exception as e:
+            self.logger.error(f"Could not load best model: {e}")

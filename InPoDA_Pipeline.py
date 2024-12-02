@@ -1,4 +1,7 @@
+# Import necessary libraries
 import logging
+import os
+
 import pandas as pd
 import json
 from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
@@ -15,20 +18,22 @@ class Config:
             self.load_config()
 
     def load_config(self):
-        """Load configuration from the specified JSON file."""
-        with open(self._config_file, 'r') as f:
-            self._data = json.load(f)
+        try:
+            with open(self._config_file, 'r') as f:
+                self._data = json.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Configuration file not found at path: {self._config_file}")
+        except json.JSONDecodeError:
+            raise ValueError(f"Error decoding JSON from configuration file: {self._config_file}")
 
         for key, value in self._data.items():
             if isinstance(value, dict):
-                # Recursively convert dictionaries to Config objects
                 self.__dict__[key] = Config.from_dict(value)
             else:
                 self.__dict__[key] = value
 
     @staticmethod
     def from_dict(data: dict):
-        """Create a Config object from a dictionary."""
         config = Config(recurr=True)
         config._data = data
         for key, value in data.items():
@@ -39,11 +44,13 @@ class Config:
         return config
 
     def __getitem__(self, key):
-        """Allow dictionary-like access."""
         return self._data[key]
 
     def __repr__(self):
         return json.dumps(self._data, indent=2)
+
+    def as_dict(self):
+        return self._data
 
 
 class Logging:
@@ -55,126 +62,99 @@ class Logging:
         "critical": logging.CRITICAL
     }
 
-    def __init__(self, level: str = "info", log_file: str = None, console_logger: bool = True, format_string: str = '%(asctime)s - %(levelname)s - %(message)s'):
-        """
-        Initialize logging with a specified level and optional file output.
-        Args:
-        - level (str): The logging level (debug, info, warning, error, critical).
-        - log_file (str): Optional file path to log messages to a file.
-        """
+    def __init__(self, level: str = "info", log_file: str = None, console_logger: bool = True,
+                 format_string: str = '%(asctime)s - %(levelname)s - %(message)s'):
         self.logger = logging.getLogger("InPoDAPipeline")
         self.logger.setLevel(self.levels.get(level.lower(), logging.INFO))
 
-        # if console logger is True, create console handler
         if console_logger:
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(logging.Formatter(format_string))
             self.logger.addHandler(console_handler)
 
-        # If a log file is specified, add a file handler
         if log_file:
             file_handler = logging.FileHandler(log_file)
             file_handler.setFormatter(logging.Formatter(format_string))
             self.logger.addHandler(file_handler)
 
-        # If no handler was specified, add a NullHandler to avoid potential errors
         if not log_file and not console_logger:
             null_handler = logging.NullHandler()
             self.logger.addHandler(null_handler)
 
     def get_logger(self):
-        """Return the configured logger."""
         return self.logger
 
 
 class InPoDAPipeline:
-    data: pd.DataFrame # to store the loaded tweets
-    config: Config
-    logger: logging.Logger
-
     def __init__(self, config_path: str = "./config.json"):
+        self.model = None
+        self.config: Config = None
+        self.logger: logging.Logger = None
+        self.data: pd.DataFrame = None
+
         self.load_config(config_path)
         self.set_logger()
 
-        self.ga_pipeline = GeneticAlgorithmPipeline(SentimentCreature, config = self.logger.training.ga_config)
-        self.data_pipeline = SentimentAnalysisDataPipeline(config = self.logger.training.data_config)
+        self.ga_pipeline = GeneticAlgorithmPipeline(
+            SentimentCreature,
+            config=self.config.training.ga_config.as_dict()
+        )
+        self.data_pipeline = SentimentAnalysisDataPipeline(
+            config=self.config.training.data_config.as_dict()
+        )
 
     def load_config(self, config_path: str):
         self.config = Config(config_path)
 
     def set_logger(self):
-        level = self.config.logging.level
-        console_logger = self.config.logging.streamhandler
-        log_file = self.config.logging.filehandler if self.config.logging.filehandler else None
-        format_string = self.config.logging.format
+        level = getattr(self.config.logging, 'level', 'info')
+        console_logger = getattr(self.config.logging, 'streamhandler', True)
+        log_file = getattr(self.config.logging, 'filehandler_file', None) if getattr(self.config.logging, 'filehandler', None) else None
+        format_string = getattr(self.config.logging, 'format', '%(asctime)s - %(levelname)s - %(message)s')
 
-        logging = Logging(level=level, log_file=log_file, console_logger=console_logger, format_string=format_string)
-        self.logger = logging.get_logger()
+        logging_instance = Logging(level=level, log_file=log_file, console_logger=console_logger, format_string=format_string)
+        self.logger = logging_instance.get_logger()
 
-    # sentiment analysis
-    # training functions
     def load_training_data(self):
-        pass
-
-    def load_genetic_algorithm(self):
-        pass
+        self.logger.info("Loading training data...")
+        self.data: pd.DataFrame = self.data_pipeline.load_clean_chunks()
+        self.logger.info(f"Loaded training data with {len(self.data)} tweets.")
 
     def train_genetic_algorithm(self):
-        pass
+        self.logger.info("Training genetic algorithm...")
+        embeddings = self.data['embeddings'].tolist()
+        sentiments = self.data['sentiment'].tolist()
+        self.ga_pipeline.train(inputs=embeddings, expected_outputs=sentiments)
 
     def save_best_creature(self):
-        pass
+        self.logger.info("Saving the best-performing creature...")
+        self.ga_pipeline.save_best_model()
 
-    # model usage functions
     def load_creature(self):
-        pass
+        self.logger.info("Loading a pre-trained creature...")
+        self.ga_pipeline.load_best_model()
 
-    def process_input(self):
-        pass
+    def process_input(self, input_data):
+        if not self.ga_pipeline.best_creature:
+            self.logger.error("Best creature not loaded. Can't process input")
+            return
+        self.logger.info("Processing input data...")
+        input_ = self.data_pipeline.compute_embeddings([SentimentAnalysisDataPipeline.preprocess_sentence(input_data)])[0]
+        self.ga_pipeline.best_creature.process(input_)
+        return self.data_pipeline.array_to_sentiment(self.ga_pipeline.best_creature.get_output(input_))
 
-    # extraction
-    # tweets loading and processing
     def load_tweets(self):
-        pass
+        self.logger.info("Loading tweets...")
+        # Placeholder for tweet loading logic
 
-    def process_tweets_to_dataframe(self):
-        pass
+    def process_tweets_to_dataframe(self, tweets):
+        self.logger.info("Processing tweets into a DataFrame...")
+        # Placeholder for tweet processing logic
 
-    # data extraction
-    def topKhashtags(self):
-        pass
+    def top_k_hashtags(self):
+        self.logger.info("Extracting top K hashtags...")
+        # Placeholder for hashtag extraction
 
-    def topKauthors(self):
-        pass
-
-    def topKmentions(self):
-        pass
-
-    def topKtopics(self):
-        pass
-
-    def num_tweets_per_user(self):
-        pass
-
-    def num_tweets_per_hastag(self):
-        pass
-
-    def num_tweets_per_topic(self):
-        pass
-
-    def tweets_of_user(self):
-        pass
-
-    def tweets_mentioning_user(self):
-        pass
-
-    def users_using_hastag(self):
-        pass
-
-    def users_mentioned_by_user(self):
-        pass
-
-
-if __name__ == '__main__':
-    pipeline = InPoDAPipeline()
-    pipeline.logger.info('Hello World')
+    def top_k_authors(self):
+        self.logger.info("Extracting top K authors...")
+        # Placeholder for author extraction

@@ -1,8 +1,9 @@
+import pickle
 import random
 import logging
 import numpy as np
 from abc import ABC
-from gatrainer.Creature import Creature
+from sentiment_analysis.gatrainer.Creature import Creature
 
 # Check for GPU availability
 try:
@@ -103,10 +104,9 @@ class SentimentCreature(Creature, ABC):
         return SentimentCreature(layers=[768, 400, 400, 100, 2], dna=dna)
 
     @staticmethod
-    def load_from_file(filepath):
-        """Load a creature from a file."""
-        dna = np.load(filepath)
-        return SentimentCreature.create_creature(dna=dna)
+    def load_from_file(file_path):
+        with open(file_path, "rb") as f:
+            return pickle.load(f)
 
     def test_input(self, user_input):
         """Test the creature with the given user input."""
