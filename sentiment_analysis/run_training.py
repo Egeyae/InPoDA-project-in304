@@ -1,5 +1,7 @@
 import logging
 
+import cupy
+
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] ::%(name)s:: (%(levelname)s) - %(message)s',
@@ -23,24 +25,48 @@ data_config = {
     "output_dir": "../data/chunks/",
     "raw_data_file": "../data/raw_sentiment140.csv",
     "raw_compressed_file": "../data/raw_sentiment140.csv.zip",
-    "chunk_size": 20
+    "chunk_size": 1000
 }
 
 ga_config = {
-        "population_size": 30,
-        "elitism_percentage": 0.2,
-        "mutation_rate": 0.05,
-        "max_epochs": 100,
-        "early_stopping": {"enabled": True, "patience": 10, "min_delta": 0.00001},
-        "save_dir": "../models/",
-        "model_name": "sentiment.model",
-        "training_sample_size": 20
+    "population_size": 30,
+    "elitism_percentage": 0.2,
+    "mutation_rate": 0.05,
+    "max_epochs": 100,
+    "early_stopping": {"enabled": True, "patience": 10, "min_delta": 0.00001},
+    "save_dir": "../models/",
+    "model_name": "sentiment.model",
+    "training_sample_size": 100
 }
 
 create = False
-chunks = 1
+chunks = 50
+import threading
+import time
+import psutil
+import GPUtil
+
+
+def log_system_usage():
+    gpus = GPUtil.getGPUs()
+    for gpu in gpus:
+        logger.info(
+            f"GPU {gpu.id} | Load: {gpu.load * 100:.1f}% | Memory Used: {gpu.memoryUsed}MB / {gpu.memoryTotal}MB")
+
+    mem = psutil.virtual_memory()
+    logger.info(f"Memory Usage: {mem.percent}% | Available: {mem.available / 1e6:.2f} MB")
+    cpu = psutil.cpu_percent()
+    logger.info(f"CPU Usage: {cpu}%")
+
+
+def monitor_resources(interval=10):
+    while True:
+        log_system_usage()
+        time.sleep(interval)
+
 
 if __name__ == "__main__":
+    # threading.Thread(target=monitor_resources, daemon=True).start()
     logger.info("Loading data pipeline")
     data_pipeline = SentimentAnalysisDataPipeline(config=data_config)
     if create:

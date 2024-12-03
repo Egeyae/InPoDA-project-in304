@@ -6,6 +6,13 @@ from .GeneticAlgorithm import GeneticAlgorithm
 from .Creature import Creature
 import pickle
 
+try:
+    from cupy import asarray
+
+    HAS_GPU = True
+except Exception:
+    HAS_GPU = False
+
 
 # noinspection PyUnresolvedReferences
 class GeneticAlgorithmPipeline:
@@ -27,7 +34,7 @@ class GeneticAlgorithmPipeline:
         "training_sample_size": 5
     }
 
-    def __init__(self, creature_class, config: dict=None):
+    def __init__(self, creature_class, config: dict = None):
         """
         Initialize the GeneticAlgorithmPipeline with a given creature class and configuration.
         :param creature_class: The class representing the "Creature" to be evolved.
@@ -104,7 +111,7 @@ class GeneticAlgorithmPipeline:
             self.logger.info("Early stopping due to keyboard interrupt.")
             self.best_creature = self.ga.best_creature
         except Exception as e:
-            self.logger.error(f"Could not train Genetic Algorithm: {e}")
+            self.logger.error(f"Could not train Genetic Algorithm: {e}", exc_info=True)
         else:
             self.best_creature = self.ga.best_creature
 
@@ -123,6 +130,8 @@ class GeneticAlgorithmPipeline:
         metrics = {"accuracy": 0.0}
         for input_, output in zip(test_inputs, test_outputs):
             self.best_creature.process(input_)
+            if HAS_GPU:
+                output = asarray(output)
             self.best_creature.fitness(expected_output=output)
             if self.ga.reverse_fitness:  # 0 is better
                 accuracy = 1 / (1 + self.best_creature.get_fitness())
@@ -133,7 +142,8 @@ class GeneticAlgorithmPipeline:
 
         metrics["accuracy"] /= len(test_inputs)
 
-        self.logger.info(f"Evaluation Results: {metrics}" + " (closer to 1 is better)" if self.ga.reverse_fitness else " (bigger is better)")
+        self.logger.info(
+            f"Evaluation Results: {metrics}" + " (closer to 1 is better)" if self.ga.reverse_fitness else " (bigger is better)")
         return metrics
 
     def save(self, file_name="genetic_algorithm.pkl"):
@@ -167,7 +177,8 @@ class GeneticAlgorithmPipeline:
     def load_best_model(self):
         try:
             print("loaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaading")
-            self.best_creature = self.creature_class.load_from_file(os.path.join(self.config["save_dir"], self.config["model_name"]))
+            self.best_creature = self.creature_class.load_from_file(
+                os.path.join(self.config["save_dir"], self.config["model_name"]))
             self.logger.info("Loaded best model")
         except FileNotFoundError:
             self.best_creature = None
