@@ -7,9 +7,10 @@ from sentiment_analysis.gatrainer.Creature import Creature
 
 # Check for GPU availability
 try:
-    import cupy as np
+    import cupy as cp
 
     HAS_GPU = True
+    np = cp  # Alias CuPy as NumPy for seamless integration
 except ImportError:
     import numpy as np
 
@@ -17,14 +18,15 @@ except ImportError:
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
 logger.info(f"GPU available: {HAS_GPU}")
 
 
 # SentimentCreature class definition
 class SentimentCreature(Creature, ABC):
     reverse_fitness = True  # We do 1/x so the closer to 1, the better
-    batch_size = 3
+    batch_size = 16  # Increased batch size for better GPU utilization
 
     def __init__(self, layers, dna=None, noDNA=False):
         super().__init__()
@@ -34,7 +36,7 @@ class SentimentCreature(Creature, ABC):
         self._fitness = None
         self._output = np.empty(layers[-1])
 
-        # If DNA is provided, use it. Otherwise, create random DNA or leave it as None
+        # Use provided DNA or generate random DNA
         if dna is not None:
             self.dna = dna
         elif not noDNA:
@@ -46,12 +48,10 @@ class SentimentCreature(Creature, ABC):
         """Generate random DNA for the creature."""
         self.dna = []
         for i in range(len(self.layers) - 1):
-            # Create weights and biases for each layer
             W = np.random.randn(self.layers[i], self.layers[i + 1])
             b = np.random.randn(self.layers[i + 1])
             self.dna.extend(W.flatten())
             self.dna.extend(b)
-
         self.dna = np.array(self.dna)
 
     @staticmethod
@@ -64,35 +64,36 @@ class SentimentCreature(Creature, ABC):
 
     def mutate(self):
         """Mutate the creature's DNA with the given mutation rate and strength."""
-        for i in range(self.dna.shape[0]):
-            if random.random() < self.mutation_rate:
-                self.dna[i] += random.uniform(-self.mutation_strength, self.mutation_strength)
+        mutation_mask = np.random.rand(self.dna.shape[0]) < self.mutation_rate
+        mutations = np.random.uniform(-self.mutation_strength, self.mutation_strength, size=self.dna.shape)
+        self.dna += mutation_mask * mutations
 
     def fitness(self, expected_output=None):
         """Evaluate the creature's fitness."""
-        #print(expected_output, self._output)
         if expected_output is not None:
             self._fitness = np.linalg.norm(expected_output - self._output)
 
-    def process(self, input_=None):
-        """Process the input through the neural network layers."""
+    def process(self, input_):
+        """Process the input through the neural network."""
+        input_ = np.array(input_, dtype=np.float32)  # Ensure compatibility with GPU if CuPy is used
         idx = 0
+
         for i in range(len(self.layers) - 1):
             in_size = self.layers[i]
             out_size = self.layers[i + 1]
 
-            # Reshape weights and biases
+            # Extract weights and biases
             W_size = in_size * out_size
-            Weights = self.dna[idx:idx + W_size].reshape(in_size, out_size)
+            W = self.dna[idx:idx + W_size].reshape(in_size, out_size)
             idx += W_size
 
-            Biases = self.dna[idx:idx + out_size]
+            b = self.dna[idx:idx + out_size]
             idx += out_size
 
-            # Apply sigmoid activation function
-            input_ = 1 / (1 + np.exp(-(np.dot(input_, Weights) + Biases)))
+            # Forward pass with sigmoid activation
+            input_ = 1 / (1 + np.exp(-np.dot(input_, W) - b))
 
-        self._output = input_  # The last input is the output
+        self._output = input_  # Final output
 
     def get_fitness(self) -> float:
         """Return the fitness of the creature."""
@@ -101,15 +102,16 @@ class SentimentCreature(Creature, ABC):
     @staticmethod
     def create_creature(dna=None):
         """Create a new SentimentCreature with the given DNA."""
-        return SentimentCreature(layers=[768, 400, 400, 100, 2], dna=dna)
+        return SentimentCreature(layers=[768, 400, 200, 2], dna=dna)
 
     @staticmethod
     def load_from_file(file_path):
+        """Load a SentimentCreature instance from a file."""
         with open(file_path, "rb") as f:
             return pickle.load(f)
 
     def test_input(self, user_input):
         """Test the creature with the given user input."""
-        input_ = np.array(eval(user_input.strip()))
+        input_ = np.array(eval(user_input.strip()), dtype=np.float32)
         self.process(input_)
         return self._output

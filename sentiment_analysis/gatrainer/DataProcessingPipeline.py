@@ -71,25 +71,56 @@ class AbstractDataPipeline(ABC):
                 self.logger.info(f"Couldn't find any valid archive file, searched: {self.config['raw_compressed_file']}")
                 raise FileNotFoundError(f"Couldn't find any valid archive file, searched: {self.config['raw_data_file']}")
 
+    # def process_data(self, file_path: str, chunk_size: int, num_chunks: int = -1) -> None:
+    #     """
+    #     Process data from a file in chunks.
+    #     Uses multiprocessing to handle large datasets.
+    #     """
+    #     self.check_source_file()
+    #     self.logger.info(f"Processing data from {file_path}...")
+    #     with Pool(self.config.get("num_workers", 4)) as pool:
+    #         with pd.read_csv(file_path, chunksize=chunk_size) as reader:
+    #             if num_chunks <= 0:
+    #                 for idx, chunk in enumerate(reader):
+    #                     pool.apply_async(self.process_chunk, args=(chunk, idx))
+    #             else:
+    #                 size = sum(1 for _ in open(file_path).readlines()) // chunk_size # number of lines over chunk size
+    #                 for idx, chunk in enumerate(reader):
+    #                     if idx < num_chunks or idx > size-1-num_chunks:
+    #                         pool.apply_async(self.process_chunk, args=(chunk, idx))
+    #         pool.close()
+    #         pool.join()
+    #     self.logger.info("Data processing complete.")
     def process_data(self, file_path: str, chunk_size: int, num_chunks: int = -1) -> None:
         """
-        Process data from a file in chunks.
-        Uses multiprocessing to handle large datasets.
+        Process data from a file in chunks, handling edge cases for `num_chunks`.
         """
         self.check_source_file()
         self.logger.info(f"Processing data from {file_path}...")
+
+        # Calculate total number of chunks in the file
+        with open(file_path) as f:
+            total_lines = sum(1 for _ in f) - 1  # Subtract 1 for header
+        total_chunks = (total_lines + chunk_size - 1) // chunk_size  # Ceiling division
+
+        # Determine indices of chunks to process
+        if num_chunks > 0:
+            start_indices = list(range(num_chunks))
+            end_indices = list(range(max(0, total_chunks - num_chunks), total_chunks))
+            chunks_to_process = sorted(set(start_indices + end_indices))
+        else:
+            chunks_to_process = list(range(total_chunks))
+
+        self.logger.info(f"Chunks to process: {chunks_to_process}")
+
         with Pool(self.config.get("num_workers", 4)) as pool:
             with pd.read_csv(file_path, chunksize=chunk_size) as reader:
-                if num_chunks <= 0:
-                    for idx, chunk in enumerate(reader):
+                for idx, chunk in enumerate(reader):
+                    if idx in chunks_to_process:
                         pool.apply_async(self.process_chunk, args=(chunk, idx))
-                else:
-                    size = sum(1 for _ in open(file_path).readlines()) // chunk_size # number of lines over chunk size
-                    for idx, chunk in enumerate(reader):
-                        if idx < num_chunks or idx > size-1-num_chunks:
-                            pool.apply_async(self.process_chunk, args=(chunk, idx))
             pool.close()
             pool.join()
+
         self.logger.info("Data processing complete.")
 
     def load_chunks(self, num_chunks: int = -1) -> pd.DataFrame:
