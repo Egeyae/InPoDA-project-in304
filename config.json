@@ -5,13 +5,13 @@
   },
   "training": {
     "ga_config": {
-      "population_size": 30,
+      "population_size": 25,
       "elitism_percentage": 0.2,
       "mutation_rate": 0.05,
       "max_epochs": 100,
       "early_stopping": {
         "enabled": true,
-        "patience": 15,
+        "patience": 20,
         "min_delta": 0.00001
       },
       "save_dir": "./models/",
