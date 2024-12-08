@@ -194,7 +194,7 @@ def topics(jason, classifier, k=5):
 # def topics():
 
 #     nlp = spacy.load('fr_core_news_sm')
-#     sentence = "Emmanuel Macron a parlé du réchauffement climatique."
+#     sentence = "Le réchauffement climatique fait peur."
 #     doc = nlp(sentence)
 #     for token in doc:
 #         if 'subj' in token.dep_:
@@ -212,45 +212,61 @@ def column_to_list(liste):
             liste_plate.extend(element)
     return liste_plate
 
-
-def dataframe_analysis(df, K):
-    #Auteurs
-    compte_authors = df["Auteur"].value_counts()
-    max_authors = compte_authors.nlargest(K)
-    print(f"Les {K} utilisateurs les plus actifs sont : {max_authors}.")
-    print(f"Nombre de publications par auteurs : {compte_authors}")
-    #Hashtags
-    compte_hashtags = df["Hashtags"].value_counts()
+def top_K_hashtags(df,K):
     dataframe_list = df["Hashtags"].to_list()
     hashtags_list = column_to_list(dataframe_list)
     compteur = Counter(hashtags_list)
     max_hashtags = compteur.most_common(K)
-    print(f"Les {K} hashtags les plus fréquents sont {max_hashtags}")
-    for element, count in compteur.items():
-        print(f"Nombre de publications par hashtags : {element} : {count}")
-    #Mentions
+
+    return max_hashtags
+
+def top_K_authors(df,K):
+    compte_authors = df["Auteur"].value_counts()
+    max_authors = compte_authors.nlargest(K)
+
+    return max_authors
+
+def top_K_mentions(df,K):
     compte_mentions = df["Mentions"].value_counts()
     dataframe_list_2 = df["Mentions"].to_list()
     mentions_list = column_to_list(dataframe_list_2)
     compteur2 = Counter(mentions_list)
     max_mentions = compteur2.most_common(K)
-    print(f"Les {K} auteurs les plus mentionnés sont {max_mentions}")
-    #Topics
+
+    return max_mentions
+
+def top_K_topics(df,K):
     compte_topics = df["Topics"].value_counts()
     max_topics = compte_topics.nlargest(K)
-    print(f"Les {K} sujets les plus récurrents sont : {max_topics}.")
-    print(f"Nombre de publications par topics : {compte_topics}")
+
+    return max_topics
+
+def nombre_publications_authors(df):
+    compte_authors = df["Auteur"].value_counts()
+    return compte_authors
+
+def nombre_publications_hashtags(df):
+    dataframe_list = df["Hashtags"].to_list()
+    hashtags_list = column_to_list(dataframe_list)
+    compteur = Counter(hashtags_list)
+    for element, count in compteur.items():
+        print(element, count)
+    return
+
+def nombre_publications_topics(df):
+    compte_topics = df["Topics"].value_counts()
+    return compte_topics
 
 
-def tweets_to_df(tweets):
+def tweets_to_df(jason):
     data = {
-        "Auteur": authors_list(tweets),
-        "Hashtags": hashtags_list(tweets),
-        "Mentions": users_list(tweets),
-        "Contenu": contenu_list(tweets)
+        "Auteur": authors_list(jason),
+        "Hashtags": hashtags_list(jason),
+        "Mentions": users_list(jason),
+        "Contenu": contenu_list(jason)
     }
     classifier = start_model()
-    data["Topics"] = topics(tweets, classifier, k=5)[0]
+    data["Topics"] = topics(jason, classifier, k=5)[0]
     return pd.DataFrame(data)
 
 
@@ -258,15 +274,17 @@ def main(path):
     data={}
     jason=file_open(path)
     clean_text=special_caracters(jason)
-    data["Auteur"]=authors_list(jason)
-    data["Hashtags"]=hashtags_list(jason)
-    data["Mentions"]=users_list(jason)
-    classifier=start_model()
-    data["Topics"]=topics(jason,classifier,k=5)[0]
-    df=pd.DataFrame(data)
-    print(dataframe_analysis(df,1))
+    K=int(input("Entrez un entier"))
+    df=tweets_to_df(jason)
+    top_hashtags=top_K_hashtags(df,K)
+    top_authors=top_K_authors(df,K)
+    top_mentions=top_K_mentions(df,K)
+    top_topics=top_K_topics(df,K)
+    publications_authors=nombre_publications_authors(df)
+    publications_hashtags=nombre_publications_hashtags(df)
+    publications_topics=nombre_publications_topics(df)
    
-    return df
+    return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 if __name__ == "__main__":
     print(main('versailles_tweets_100.json'))
