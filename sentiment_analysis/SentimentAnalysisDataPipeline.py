@@ -1,5 +1,4 @@
 import zipfile
-
 import torch
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
@@ -7,6 +6,13 @@ from sentiment_analysis.gatrainer.DataProcessingPipeline import AbstractDataPipe
 import pandas as pd
 import os
 import gc
+
+try:
+    import cupy as np
+    HAS_GPU = True
+except ImportError:
+    import numpy as np
+    HAS_GPU = False
 
 
 def str_embed_to_np_array(array):
@@ -18,17 +24,18 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
     """
     A data processing pipeline using Transformer-based embeddings.
     """
-
+    columns = ["sentiment","id","date","query","user","text"]
     def __init__(self, config: object = None) -> object:
         super().__init__(config)
         self.device = torch.device(self.config.get("device", "cuda" if torch.cuda.is_available() else "cpu"))
-        self.model = AutoModel.from_pretrained(self.config.get("model_name", "bert-base-uncased")).to(self.device)
+        self.model = AutoModel.from_pretrained(self.config.get("model_name", "bert-base-uncased"))
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.get("model_name", "bert-base-uncased"))
         self.logger.info("Model and tokenizer loaded.")
 
     @staticmethod
     def preprocess_sentence(sentence: str):
-        return " ".join(word for word in sentence.split() if not (word.startswith("@") or word.startswith("http") or word.startswith("#")))
+        return " ".join(word for word in sentence.split() if
+                        not (word.startswith("@") or word.startswith("http") or word.startswith("#")))
 
     def preprocess(self, data: pd.DataFrame) -> pd.DataFrame:
         """Clean and preprocess the data."""
@@ -52,29 +59,32 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
                     max_length=self.config.get("max_seq_len", 128)
                 )
                 inputs = {key: value.to(self.device) for key, value in inputs.items()}
+                self.model.to(self.device)
                 outputs = self.model(**inputs)
                 cls_embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
-                embeddings.extend(cls_embeddings.astype(np.float16))  # Directly append to the list
-        return np.array(embeddings, dtype=np.float16)  # Convert list to array at once
+                embeddings.extend(cls_embeddings)
+        return np.array(embeddings, dtype=np.float16)
 
-    def compute_sentiment_arrays(self, sentiments: list[str]) -> np.ndarray:
-        """Vectorized computation of sentiment arrays."""
-        sentiment_map = {
-            "0": np.array([1, 0], dtype=np.float16),
-            0: np.array([1, 0], dtype=np.float16),
-            "4": np.array([0, 1], dtype=np.float16),
-            4: np.array([0, 1], dtype=np.float16),
-        }
-        return np.array([sentiment_map[sentiment] for sentiment in sentiments], dtype=np.float16)
+    def compute_sentiment_arrays(self, sentiments: list[int]) -> np.ndarray:
+        """
+        Convert scalar sentiment scores to a scaled sentiment representation.
+        This keeps the scalar values [0, 4] but processes them for fitness calculation.
+        """
+        return np.array(sentiments, dtype=np.float16)
 
-    # noinspection PyTypeChecker
-    def array_to_sentiment(self, sentiment_array: np.ndarray) -> str:
-        arrays_labels = ("positive", "neutral", "negative")
-        arrays = (np.linalg.norm(np.array([1, 0]), sentiment_array),
-                  np.linalg.norm(np.array([0.5, 0.5]), sentiment_array),
-                  np.linalg.norm(np.array([0, 1]), sentiment_array)
-                  )
-        return arrays_labels[arrays.index(min(arrays))]
+    def array_to_sentiment(self, sentiment_score: float) -> str:
+        """
+        Map a scalar sentiment score to a human-readable label.
+        - [0, 1.5): Negative
+        - [1.5, 2.5]: Neutral
+        - (2.5, 4]: Positive
+        """
+        if sentiment_score < 1.5:
+            return "negative"
+        elif 1.5 <= sentiment_score <= 2.5:
+            return "neutral"
+        else:
+            return "positive"
 
     def process_chunk(self, chunk: pd.DataFrame, idx: int) -> None:
         """Process a single chunk of data."""
@@ -102,19 +112,22 @@ class SentimentAnalysisDataPipeline(AbstractDataPipeline):
     def load_clean_chunks(self, num_chunks: int = -1):
         df = self.load_chunks(num_chunks)
         df["embeddings"] = df["embeddings"].apply(lambda x: str_embed_to_np_array(x))
-        df["sentiment"] = df["sentiment"].apply(lambda x: str_embed_to_np_array(x))
+        df["sentiment"] = df["sentiment"].apply(lambda x: float(x))  # Convert to scalar float
         return df
 
     def run(self, num_chunks: int = -1):
         """Run the full pipeline."""
         raw_file = self.config.get("raw_data_file", "../data/raw_data.csv")
         if not os.path.isfile(raw_file):
-            if not os.path.isfile(raw_file+".zip"):
+            if not os.path.isfile(raw_file + ".zip"):
                 raise FileNotFoundError(f"{raw_file} nor {raw_file}.zip were found. Cannot proceed")
             else:
-                with zipfile.ZipFile(raw_file+".zip", 'r') as zip_ref:
+                with zipfile.ZipFile(raw_file + ".zip", 'r') as zip_ref:
                     zip_ref.extractall("/".join(raw_file.split("/")[:-1]))
+        with open(raw_file, "r", encoding="utf-8", errors="replace") as f:
+            data = f.read()
+        with open(raw_file, "w", encoding="utf-8", errors="strict") as f:
+            f.write(data)
 
         chunk_size = self.config.get("chunk_size", 1000)
         self.process_data(raw_file, chunk_size, num_chunks=num_chunks)
-

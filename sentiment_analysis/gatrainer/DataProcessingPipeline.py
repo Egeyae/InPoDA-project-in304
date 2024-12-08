@@ -22,7 +22,7 @@ class AbstractDataPipeline(ABC):
     DEFAULT_CONFIG = {
         "config_dir": "./"
     }
-
+    columns = None
     def __init__(self, config=None):
         """
         Initialize the pipeline with the given configuration.
@@ -114,10 +114,16 @@ class AbstractDataPipeline(ABC):
         self.logger.info(f"Chunks to process: {chunks_to_process}")
 
         with Pool(self.config.get("num_workers", 4)) as pool:
-            with pd.read_csv(file_path, chunksize=chunk_size) as reader:
-                for idx, chunk in enumerate(reader):
-                    if idx in chunks_to_process:
-                        pool.apply_async(self.process_chunk, args=(chunk, idx))
+            if self.columns is None:
+                with pd.read_csv(file_path, chunksize=chunk_size) as reader:
+                    for idx, chunk in enumerate(reader):
+                        if idx in chunks_to_process:
+                            pool.apply_async(self.process_chunk, args=(chunk, idx))
+            else:
+                with pd.read_csv(file_path, chunksize=chunk_size, names=self.columns) as reader:
+                    for idx, chunk in enumerate(reader):
+                        if idx in chunks_to_process:
+                            pool.apply_async(self.process_chunk, args=(chunk, idx))
             pool.close()
             pool.join()
 

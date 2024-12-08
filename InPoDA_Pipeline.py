@@ -139,9 +139,12 @@ class InPoDAPipeline:
             self.logger.error("Best creature not loaded. Can't process input")
             return
         self.logger.info("Processing input data...")
+        input_data = self.data_pipeline.preprocess_sentence(input_data)
         input_ = self.data_pipeline.compute_embeddings([SentimentAnalysisDataPipeline.preprocess_sentence(input_data)])[0]
+
         self.ga_pipeline.best_creature.process(input_)
-        return self.data_pipeline.array_to_sentiment(self.ga_pipeline.best_creature.get_output(input_))
+        print(self.ga_pipeline.best_creature.get_output())
+        return self.data_pipeline.array_to_sentiment(self.ga_pipeline.best_creature.get_output())
 
     def load_tweets(self):
         self.logger.info("Loading tweets...")

@@ -26,13 +26,10 @@ class GeneticAlgorithm:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.addHandler(logging.NullHandler())
 
-        # if not issubclass(creature_class, Creature):
-        #     raise TypeError("creature_class must be a subclass of Creature.")
-
         self.population_size = population_size
         self.creature_class = creature_class
         self.reverse_fitness = reverse_fitness or creature_class.reverse_fitness
-        self.batch_size = batch_size or creature_class.batch_size
+        self.batch_size = batch_size
 
         # Validate selection methods
         self.selection_methods = []
@@ -159,7 +156,7 @@ class GeneticAlgorithm:
 
         self.population = new_population
 
-    def epoch(self, inputs_: list = None, expected_outputs: list = None):
+    def epoch(self, inputs_: list = None, expected_outputs: list = None, patience: int = 10, delta: float = 0.0001):
         """Run multiple generations for a batch of inputs and expected outputs."""
         random.shuffle(inputs_)
         random.shuffle(expected_outputs)

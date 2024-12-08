@@ -29,7 +29,10 @@ class Creature(ABC):
     def save_to_file(self, path):
         """Save DNA to a file."""
         with open(path, "wb") as f:
-            pickle.dump(self.dna, f)
+            if HAS_GPU:
+                pickle.dump(self.dna.get(), f) # if GPU, convert to CPU
+            else:
+                pickle.dump(self.dna, f)
 
     @staticmethod
     def load_from_file(file_path):

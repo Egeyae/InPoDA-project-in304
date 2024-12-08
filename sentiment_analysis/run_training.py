@@ -1,6 +1,5 @@
 import logging
-
-import cupy
+import sys
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,7 +20,7 @@ from SentimentCreature import SentimentCreature
 data_config = {
     "model_name": "distilbert-base-multilingual-cased",
     "batch_size": 32,
-    "max_seq_len": 128,
+    "max_seq_len": 256,
     "output_dir": "../data/chunks/",
     "raw_data_file": "../data/raw_sentiment140.csv",
     "raw_compressed_file": "../data/raw_sentiment140.csv.zip",
@@ -29,19 +28,18 @@ data_config = {
 }
 
 ga_config = {
-    "population_size": 30,
+    "population_size": 20,
     "elitism_percentage": 0.2,
-    "mutation_rate": 0.05,
+    "mutation_rate": 0.1,
     "max_epochs": 100,
-    "early_stopping": {"enabled": True, "patience": 10, "min_delta": 0.00001},
+    "early_stopping": {"enabled": True, "patience": 20, "min_delta": 0.0001},
     "save_dir": "../models/",
     "model_name": "sentiment.model",
     "training_sample_size": 100
 }
 
 create = False
-chunks = 50
-import threading
+chunks = 20
 import time
 import psutil
 import GPUtil

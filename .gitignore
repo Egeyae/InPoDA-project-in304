@@ -122,7 +122,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-env.py
 .venv
 env/
 venv/
@@ -161,3 +160,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 /data/raw_sentiment140.csv
+.DS_STORE

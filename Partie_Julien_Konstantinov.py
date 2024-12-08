@@ -4,6 +4,8 @@ import re
 import pandas as pd
 from transformers import pipeline, XLMRobertaTokenizer
 import spacy
+import ast
+from collections import Counter
 
 
 def file_open(path):
@@ -169,16 +171,14 @@ def topics(jason,classifier,k=5):
     for i in range(0,length):
         cleaned_text=text_cleaning(jason[i]["text"])
         text=cleaned_text
-        print(text)
+        print(f"Tweet n°{i} analysé.")
         if text:
             result = classifier(text, candidate_labels=labels)
             result = zip(result["labels"],result["scores"])
             result = sorted(result, key=lambda x: x[1], reverse=True)
-            #print(result[:k])
             topic_list.append(result[:k][0][0])
             score_list.append(result[:k][0][1])
         else:
-            #print("None")
             topic_list.append("None")
             score_list.append("None")
 
@@ -196,18 +196,44 @@ def topics(jason,classifier,k=5):
     
 #     return
 
+def column_to_list(liste):
+    liste_plate = []
+    for element in liste:
+        if isinstance(element, str) and element.startswith("["):
+            sous_liste = ast.literal_eval(element) 
+            liste_plate.extend(sous_liste) 
+        elif isinstance(element, list):
+            liste_plate.extend(element)
+    return liste_plate
+
+
 def dataframe_analysis(df,K):
+    #Auteurs
     compte_authors=df["Auteur"].value_counts()
     max_authors=compte_authors.nlargest(K)
     print(f"Les {K} utilisateurs les plus actifs sont : {max_authors}.")
+    print(f"Nombre de publications par auteurs : {compte_authors}")
+    #Hashtags
     compte_hashtags=df["Hashtags"].value_counts()
+    dataframe_list=df["Hashtags"].to_list()
+    hashtags_list=column_to_list(dataframe_list)
+    compteur = Counter(hashtags_list)
+    max_hashtags = compteur.most_common(K)
+    print(f"Les {K} hashtags les plus fréquents sont {max_hashtags}")
+    for element, count in compteur.items():
+        print(f"Nombre de publications par hashtags : {element} : {count}")
+    #Mentions
     compte_mentions=df["Mentions"].value_counts()
+    dataframe_list_2=df["Mentions"].to_list()
+    mentions_list=column_to_list(dataframe_list_2)
+    compteur2 = Counter(mentions_list)
+    max_mentions = compteur2.most_common(K)
+    print(f"Les {K} auteurs les plus mentionnés sont {max_mentions}")
+    #Topics
     compte_topics=df["Topics"].value_counts()
     max_topics=compte_topics.nlargest(K)
     print(f"Les {K} sujets les plus récurrents sont : {max_topics}.")
-
-
-
+    print(f"Nombre de publications par topics : {compte_topics}")
 
 
 
@@ -220,9 +246,8 @@ def main(path):
     data["Mentions"]=users_list(jason)
     classifier=start_model()
     data["Topics"]=topics(jason,classifier,k=5)[0]
-    data["Scores"]=topics(jason,classifier,k=5)[1]
     df=pd.DataFrame(data)
-    print(dataframe_analysis(df,4))
+    print(dataframe_analysis(df,1))
    
     return
 
