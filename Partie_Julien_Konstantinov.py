@@ -249,9 +249,9 @@ def main(path):
     df=pd.DataFrame(data)
     print(dataframe_analysis(df,1))
    
-    return
+    return df
 
-
-print(main('versailles_tweets_100.json'))
+if __name__ == "__main__":
+    print(main('versailles_tweets_100.json'))
 
 

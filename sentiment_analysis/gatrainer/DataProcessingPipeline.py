@@ -122,6 +122,8 @@ class AbstractDataPipeline(ABC):
             else:
                 with pd.read_csv(file_path, chunksize=chunk_size, names=self.columns) as reader:
                     for idx, chunk in enumerate(reader):
+                        if idx == 0:
+                            chunk = chunk[1:]
                         if idx in chunks_to_process:
                             pool.apply_async(self.process_chunk, args=(chunk, idx))
             pool.close()

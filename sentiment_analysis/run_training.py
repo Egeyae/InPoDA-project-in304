@@ -38,8 +38,8 @@ ga_config = {
     "training_sample_size": 100
 }
 
-create = True
-chunks = 20
+create = False
+chunks = 10
 import threading
 import time
 import psutil
