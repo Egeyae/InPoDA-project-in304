@@ -24,7 +24,7 @@
       "output_dir": "./data/chunks/",
       "raw_data_file": "./data/raw_sentiment140.csv",
       "raw_compressed_file": "./data/raw_sentiment140.csv.zip",
-      "chunk_size": 20
+      "chunk_size": 1000
     }
   },
   "logging": {

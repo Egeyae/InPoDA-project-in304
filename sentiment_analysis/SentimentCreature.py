@@ -10,7 +10,7 @@ try:
     import cupy as cp
 
     HAS_GPU = True
-    np = cp  # Alias CuPy as NumPy for seamless integration
+    np = cp
 except ImportError:
     import numpy as np
 
@@ -23,10 +23,9 @@ logger.setLevel(logging.INFO)
 logger.info(f"GPU available: {HAS_GPU}")
 
 
-# SentimentCreature class definition
 class SentimentCreature(Creature, ABC):
-    reverse_fitness = True  # We do 1/x so the closer to 1, the better
-    batch_size = 16  # Increased batch size for better GPU utilization
+    reverse_fitness = True
+    batch_size = 1
 
     def __init__(self, layers, dna=None, noDNA=False):
         super().__init__()
@@ -34,7 +33,7 @@ class SentimentCreature(Creature, ABC):
         self.mutation_rate = 0.01
         self.mutation_strength = 0.5
         self._fitness = None
-        self._output = np.empty(layers[-1])
+        self._output = np.empty((1,), dtype=np.float32)  # Single scalar output as array
 
         # Use provided DNA or generate random DNA
         if dna is not None:
@@ -68,14 +67,50 @@ class SentimentCreature(Creature, ABC):
         mutations = np.random.uniform(-self.mutation_strength, self.mutation_strength, size=self.dna.shape)
         self.dna += mutation_mask * mutations
 
+    def fitness_binary_crossentropy(self, expected_output=None, epsilon=1e-10):
+        """Evaluate the creature's fitness using Binary Cross-Entropy loss."""
+        if expected_output is not None:
+            # Clip values to avoid log(0)
+            clipped_output = np.clip(self._output, epsilon, 1 - epsilon)
+
+            # Scale expected output to match range [0, 1]
+            scaled_expected = expected_output / 4
+
+            # Calculate Binary Cross-Entropy Loss
+            bce_loss = -np.sum(
+                scaled_expected * np.log(clipped_output) + (1 - scaled_expected) * np.log(1 - clipped_output)
+            )
+            self._fitness = bce_loss
+
+    def fitness_hybrid(self, expected_output=None, alpha=0.5, epsilon=1e-10):
+        """Evaluate the creature's fitness using a hybrid loss function."""
+        if expected_output is not None:
+            # Clip values to avoid log(0)
+            clipped_output = np.clip(self._output, epsilon, 1 - epsilon)
+
+            # Scale expected output to match range [0, 1]
+            scaled_expected = expected_output / 4
+
+            # Binary Cross-Entropy Component
+            bce_loss = -np.sum(
+                scaled_expected * np.log(clipped_output) + (1 - scaled_expected) * np.log(1 - clipped_output)
+            )
+
+            # Mean Squared Error Component (use unscaled values)
+            mse_loss = np.mean((expected_output - self._output) ** 2)
+
+            # Weighted Hybrid Loss
+            self._fitness = alpha * bce_loss + (1 - alpha) * mse_loss
+
     def fitness(self, expected_output=None):
         """Evaluate the creature's fitness."""
-        if expected_output is not None:
-            self._fitness = np.linalg.norm(expected_output - self._output)
+        return self.fitness_hybrid(expected_output, epsilon=1e-10)
 
-    def process(self, input_):
+    def process(self, input_=None):
         """Process the input through the neural network."""
-        input_ = np.array(input_, dtype=np.float32)  # Ensure compatibility with GPU if CuPy is used
+        # input_ = np.array(input_, dtype=np.float64)  # Ensure compatibility with GPU if CuPy is used
+        if HAS_GPU:
+            input_ = np.asarray(input_, dtype=np.float64)
         idx = 0
 
         for i in range(len(self.layers) - 1):
@@ -90,10 +125,15 @@ class SentimentCreature(Creature, ABC):
             b = self.dna[idx:idx + out_size]
             idx += out_size
 
+            if HAS_GPU:
+                W = np.asarray(W, dtype=np.float64)
+                b = np.asarray(b, dtype=np.float64)
+
             # Forward pass with sigmoid activation
             input_ = 1 / (1 + np.exp(-np.dot(input_, W) - b))
 
-        self._output = input_  # Final output
+        # Scale the final output to range [0, 4]
+        self._output = input_ * 4
 
     def get_fitness(self) -> float:
         """Return the fitness of the creature."""
@@ -102,16 +142,20 @@ class SentimentCreature(Creature, ABC):
     @staticmethod
     def create_creature(dna=None):
         """Create a new SentimentCreature with the given DNA."""
-        return SentimentCreature(layers=[768, 400, 200, 2], dna=dna)
+        return SentimentCreature(layers=[768, 400, 200, 1], dna=dna)
 
     @staticmethod
     def load_from_file(file_path):
         """Load a SentimentCreature instance from a file."""
         with open(file_path, "rb") as f:
-            return pickle.load(f)
+            return SentimentCreature.create_creature(pickle.load(f))  # Load a DNA as we save DNA and not the object
 
     def test_input(self, user_input):
         """Test the creature with the given user input."""
         input_ = np.array(eval(user_input.strip()), dtype=np.float32)
         self.process(input_)
         return self._output
+
+    def get_output(self):
+        """Return the current computed output."""
+        return self._output[0]

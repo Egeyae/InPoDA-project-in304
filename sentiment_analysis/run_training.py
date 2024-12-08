@@ -1,4 +1,5 @@
 import logging
+import sys
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,7 +32,7 @@ ga_config = {
     "elitism_percentage": 0.1,
     "mutation_rate": 0.08,
     "max_epochs": 100,
-    "early_stopping": {"enabled": True, "patience": 10, "min_delta": 0.00001},
+    "early_stopping": {"enabled": True, "patience": 20, "min_delta": 0.0001},
     "save_dir": "../models/",
     "model_name": "sentiment.model",
     "training_sample_size": 100
