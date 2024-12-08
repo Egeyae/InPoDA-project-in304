@@ -168,6 +168,23 @@ class InPoDAPipeline:
         self.logger.info("Extracting top K authors...")
         # Placeholder for author extraction
 
+    def top_k_mentioned(self):
+        self.logger.info("Extracting top K users mentioned...")
+        # Placeholder for author extraction
+
+    def top_k_topics(self):
+        self.logger.info("Extracting top K topics...")
+        # Placeholder for author extraction
+
+    def count_tweets_user(self):
+        self.logger.info("Counting tweets for each user...")
+
+    def count_tweets_hashtag(self):
+        self.logger.info("Counting tweets for each hashtag...")
+
+    def count_tweets_mentioned(self):
+        self.logger.info("Counting tweets for each mentioned...")
+
     def pretty_dict_display(self, dico):
         html_tweets = json2html.convert(json=dico, table_attributes='class="table table-bordered"')
         custom_css = """
