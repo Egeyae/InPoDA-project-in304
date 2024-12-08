@@ -20,7 +20,7 @@ from SentimentCreature import SentimentCreature
 data_config = {
     "model_name": "distilbert-base-multilingual-cased",
     "batch_size": 32,
-    "max_seq_len": 256,
+    "max_seq_len": 128,
     "output_dir": "../data/chunks/",
     "raw_data_file": "../data/raw_sentiment140.csv",
     "raw_compressed_file": "../data/raw_sentiment140.csv.zip",
@@ -28,9 +28,9 @@ data_config = {
 }
 
 ga_config = {
-    "population_size": 20,
-    "elitism_percentage": 0.2,
-    "mutation_rate": 0.1,
+    "population_size": 10,
+    "elitism_percentage": 0.1,
+    "mutation_rate": 0.08,
     "max_epochs": 100,
     "early_stopping": {"enabled": True, "patience": 20, "min_delta": 0.0001},
     "save_dir": "../models/",
@@ -39,17 +39,24 @@ ga_config = {
 }
 
 create = False
-chunks = 20
+chunks = 10
+import threading
 import time
 import psutil
-import GPUtil
+try:
+    import GPUtil
+    import cupy
+    HAS_GPU = True
+except ImportError:
+    HAS_GPU = False
 
 
 def log_system_usage():
-    gpus = GPUtil.getGPUs()
-    for gpu in gpus:
-        logger.info(
-            f"GPU {gpu.id} | Load: {gpu.load * 100:.1f}% | Memory Used: {gpu.memoryUsed}MB / {gpu.memoryTotal}MB")
+    if HAS_GPU:
+        gpus = GPUtil.getGPUs()
+        for gpu in gpus:
+            logger.info(
+                f"GPU {gpu.id} | Load: {gpu.load * 100:.1f}% | Memory Used: {gpu.memoryUsed}MB / {gpu.memoryTotal}MB")
 
     mem = psutil.virtual_memory()
     logger.info(f"Memory Usage: {mem.percent}% | Available: {mem.available / 1e6:.2f} MB")

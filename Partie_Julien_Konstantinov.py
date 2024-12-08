@@ -36,9 +36,7 @@ def text_cleaning(texte):
     texte_sans_lien = re.sub(r"https?://\S+", "", texte_sans_emojis)
     texte_sans_arobases = re.sub(r"@\w+", "", texte_sans_lien)
     texte_sans_hashtags = re.sub(r"#\w+", "", texte_sans_arobases)
-    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",
-                                                                                                            '').replace(
-        "\u200d", '').replace("@", '').replace("#", '')
+    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’", '').replace("\u200d",'').replace("@",'').replace("#",'')
     texte_final = re.sub(r"\s+", " ", texte_sans_parasites).strip()
     return texte_final
 
@@ -257,14 +255,18 @@ def tweets_to_df(tweets):
 
 
 def main(path):
-    data = {}
-    jason = file_open(path)
-    clean_text = special_caracters(jason)
-    df = tweets_to_df(jason)
-    print(dataframe_analysis(df, 1))
-
-    return
-
+    data={}
+    jason=file_open(path)
+    clean_text=special_caracters(jason)
+    data["Auteur"]=authors_list(jason)
+    data["Hashtags"]=hashtags_list(jason)
+    data["Mentions"]=users_list(jason)
+    classifier=start_model()
+    data["Topics"]=topics(jason,classifier,k=5)[0]
+    df=pd.DataFrame(data)
+    print(dataframe_analysis(df,1))
+   
+    return df
 
 if __name__ == "__main__":
     print(main('versailles_tweets_100.json'))
