@@ -63,7 +63,7 @@ def special_caracters(jason):
 
 def authors_list(jason):
     """
-    Fonction permettant d'obtenir l'identification de l'auteur d'un tweet.
+    Fonction qui permet d'obtenir l'identification de l'auteur d'un tweet.
     """
     author_list=[]
     length=len(jason)
@@ -75,7 +75,7 @@ def authors_list(jason):
 
 def hashtags_list(jason):
     """
-    Fonction permettant d'obtenir la liste des hashtags présents dans un tweet. 
+    Fonction qui permet d'obtenir la liste des hashtags présents dans un tweet. 
     """
     hashtag_list=[]
     length=len(jason)
@@ -99,7 +99,7 @@ def hashtags_list(jason):
 
 def users_list(jason):
     """
-    Fonction permettant d'obtenir la liste des utilisateurs mentionnés dans un tweet. 
+    Fonction qui permet d'obtenir la liste des utilisateurs mentionnés dans un tweet. 
     """
     df = pd.DataFrame(columns=["Users"])
     user_list=[]
