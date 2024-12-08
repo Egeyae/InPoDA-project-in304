@@ -1,7 +1,7 @@
 {
   "model": {
-    "folder": "./model/",
-    "path": "sentiment.pkl"
+    "folder": "./models/",
+    "path": "sentiment.model"
   },
   "training": {
     "ga_config": {
@@ -24,7 +24,7 @@
       "output_dir": "./data/chunks/",
       "raw_data_file": "./data/raw_sentiment140.csv",
       "raw_compressed_file": "./data/raw_sentiment140.csv.zip",
-      "chunk_size": 20
+      "chunk_size": 1000
     }
   },
   "logging": {
@@ -33,5 +33,8 @@
     "filehandler_file": "inpoda.log",
     "format": "[%(asctime)s] ::%(name)s:: (%(levelname)s) - %(message)s",
     "level": "debug"
+  },
+  "tweets": {
+    "file": "./versailles_tweets_100.json"
   }
 }

@@ -2,12 +2,14 @@
 import logging
 import os
 
+from json2html import json2html
+from IPython.display import display, HTML
 import pandas as pd
 import json
 from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
 from sentiment_analysis.SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from sentiment_analysis.SentimentCreature import SentimentCreature
-
+from Partie_Julien_Konstantinov import *
 
 class Config:
     def __init__(self, cfg_pth: str = './config.json', recurr: bool = False):
@@ -87,6 +89,8 @@ class Logging:
 
 class InPoDAPipeline:
     def __init__(self, config_path: str = "./config.json"):
+        self.tweets_dataframe = None
+        self.tweets = None
         self.model = None
         self.config: Config = None
         self.logger: logging.Logger = None
@@ -139,17 +143,22 @@ class InPoDAPipeline:
             self.logger.error("Best creature not loaded. Can't process input")
             return
         self.logger.info("Processing input data...")
+        input_data = self.data_pipeline.preprocess_sentence(input_data)
         input_ = self.data_pipeline.compute_embeddings([SentimentAnalysisDataPipeline.preprocess_sentence(input_data)])[0]
+
         self.ga_pipeline.best_creature.process(input_)
-        return self.data_pipeline.array_to_sentiment(self.ga_pipeline.best_creature.get_output(input_))
+        print(self.ga_pipeline.best_creature.get_output())
+        return self.data_pipeline.array_to_sentiment(self.ga_pipeline.best_creature.get_output())
 
     def load_tweets(self):
         self.logger.info("Loading tweets...")
-        # Placeholder for tweet loading logic
+        self.tweets = file_open(self.config.tweets.file)
+        return self.tweets
 
-    def process_tweets_to_dataframe(self, tweets):
+    def process_tweets_to_dataframe(self):
         self.logger.info("Processing tweets into a DataFrame...")
-        # Placeholder for tweet processing logic
+        self.tweets_dataframe = tweets_to_df(self.tweets)
+        return self.tweets_dataframe
 
     def top_k_hashtags(self):
         self.logger.info("Extracting top K hashtags...")
@@ -158,3 +167,51 @@ class InPoDAPipeline:
     def top_k_authors(self):
         self.logger.info("Extracting top K authors...")
         # Placeholder for author extraction
+
+    def top_k_mentioned(self):
+        self.logger.info("Extracting top K users mentioned...")
+        # Placeholder for author extraction
+
+    def top_k_topics(self):
+        self.logger.info("Extracting top K topics...")
+        # Placeholder for author extraction
+
+    def count_tweets_user(self):
+        self.logger.info("Counting tweets for each user...")
+
+    def count_tweets_hashtag(self):
+        self.logger.info("Counting tweets for each hashtag...")
+
+    def count_tweets_mentioned(self):
+        self.logger.info("Counting tweets for each mentioned...")
+
+    def pretty_dict_display(self, dico):
+        html_tweets = json2html.convert(json=dico, table_attributes='class="table table-bordered"')
+        custom_css = """
+        <style>
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 20px; 
+            }
+            th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+            }
+            th { 
+                background-color: #f2f2f2; 
+                text-align: left; 
+            }
+            tr:nth-child(even) { 
+                background-color: #f9f9f9; 
+            }
+            td:first-child { 
+                width: 20%; /* Set key column to take 20% of the table width */
+                font-weight: bold; 
+            }
+            td:last-child { 
+                width: 80%; /* Set value column to take 80% of the table width */
+            }
+        </style>
+        """
+        display(HTML(custom_css + html_tweets))
