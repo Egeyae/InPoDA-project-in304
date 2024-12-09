@@ -36,7 +36,9 @@ def text_cleaning(texte):
     texte_sans_lien = re.sub(r"https?://\S+", "", texte_sans_emojis)
     texte_sans_arobases = re.sub(r"@\w+", "", texte_sans_lien)
     texte_sans_hashtags = re.sub(r"#\w+", "", texte_sans_arobases)
-    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’", '').replace("\u200d",'').replace("@",'').replace("#",'')
+    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",
+                                                                                                            '').replace(
+        "\u200d", '').replace("@", '').replace("#", '')
     texte_final = re.sub(r"\s+", " ", texte_sans_parasites).strip()
     return texte_final
 
@@ -212,7 +214,8 @@ def column_to_list(liste):
             liste_plate.extend(element)
     return liste_plate
 
-def top_K_hashtags(df,K):
+
+def top_K_hashtags(df, K):
     dataframe_list = df["Hashtags"].to_list()
     hashtags_list = column_to_list(dataframe_list)
     compteur = Counter(hashtags_list)
@@ -220,13 +223,16 @@ def top_K_hashtags(df,K):
 
     return max_hashtags
 
-def top_K_authors(df,K):
-    compte_authors = df["Auteur"].value_counts()
-    max_authors = compte_authors.nlargest(K)
 
+def top_K_authors(df, K):
+    compte_authors = df["Auteur"].value_counts()
+    #max_authors = compte_authors.nlargest(K)
+    compteur = Counter(compte_authors)
+    max_authors = compteur.most_common(K)
     return max_authors
 
-def top_K_mentions(df,K):
+
+def top_K_mentions(df, K):
     compte_mentions = df["Mentions"].value_counts()
     dataframe_list_2 = df["Mentions"].to_list()
     mentions_list = column_to_list(dataframe_list_2)
@@ -235,15 +241,21 @@ def top_K_mentions(df,K):
 
     return max_mentions
 
-def top_K_topics(df,K):
+
+def top_K_topics(df, K):
     compte_topics = df["Topics"].value_counts()
-    max_topics = compte_topics.nlargest(K)
+    # max_topics = compte_topics.nlargest(K)
+    topics_list = column_to_list(compte_topics)
+    compteur = Counter(topics_list)
+    max_topics = compteur.most_common(K)
 
     return max_topics
+
 
 def nombre_publications_authors(df):
     compte_authors = df["Auteur"].value_counts()
     return compte_authors
+
 
 def nombre_publications_hashtags(df):
     dataframe_list = df["Hashtags"].to_list()
@@ -252,6 +264,7 @@ def nombre_publications_hashtags(df):
     for element, count in compteur.items():
         print(element, count)
     return
+
 
 def nombre_publications_topics(df):
     compte_topics = df["Topics"].value_counts()
@@ -271,20 +284,21 @@ def tweets_to_df(jason):
 
 
 def main(path):
-    data={}
-    jason=file_open(path)
-    clean_text=special_caracters(jason)
-    K=int(input("Entrez un entier"))
-    df=tweets_to_df(jason)
-    top_hashtags=top_K_hashtags(df,K)
-    top_authors=top_K_authors(df,K)
-    top_mentions=top_K_mentions(df,K)
-    top_topics=top_K_topics(df,K)
-    publications_authors=nombre_publications_authors(df)
-    publications_hashtags=nombre_publications_hashtags(df)
-    publications_topics=nombre_publications_topics(df)
-   
+    data = {}
+    jason = file_open(path)
+    clean_text = special_caracters(jason)
+    K = int(input("Entrez un entier"))
+    df = tweets_to_df(jason)
+    top_hashtags = top_K_hashtags(df, K)
+    top_authors = top_K_authors(df, K)
+    top_mentions = top_K_mentions(df, K)
+    top_topics = top_K_topics(df, K)
+    publications_authors = nombre_publications_authors(df)
+    publications_hashtags = nombre_publications_hashtags(df)
+    publications_topics = nombre_publications_topics(df)
+
     return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+
 
 if __name__ == "__main__":
     print(main('versailles_tweets_100.json'))

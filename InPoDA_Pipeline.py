@@ -4,11 +4,15 @@ import logging
 import pandas as pd
 from IPython.display import display, HTML
 from json2html import json2html
+from spacy.lang.ja.syntax_iterators import labels
 
+import Partie_Julien_Konstantinov
 from Partie_Julien_Konstantinov import *
 from sentiment_analysis.SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from sentiment_analysis.SentimentCreature import SentimentCreature
 from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
+
+import matplotlib.pyplot as plt
 
 
 class Config:
@@ -120,6 +124,16 @@ def pretty_dict_display(dico):
     display(HTML(custom_css + html_tweets))
 
 
+def show_bar_graph(title, xlab, ylab, datax, datay):
+    plt.figure()
+    plt.bar(datax, datay)
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+
+
 class InPoDAPipeline:
     def __init__(self, config_path: str = "./config.json"):
         self.tweets_dataframe = None
@@ -146,18 +160,21 @@ class InPoDAPipeline:
     def set_logger(self):
         level = getattr(self.config.logging, 'level', 'info')
         console_logger = getattr(self.config.logging, 'streamhandler', True)
-        log_file = getattr(self.config.logging, 'filehandler_file', None) if getattr(self.config.logging, 'filehandler', None) else None
+        log_file = getattr(self.config.logging, 'filehandler_file', None) if getattr(self.config.logging, 'filehandler',
+                                                                                     None) else None
         format_string = getattr(self.config.logging, 'format', '%(asctime)s - %(levelname)s - %(message)s')
 
-        logging_instance = Logging(level=level, log_file=log_file, console_logger=console_logger, format_string=format_string)
+        logging_instance = Logging(level=level, log_file=log_file, console_logger=console_logger,
+                                   format_string=format_string)
         self.logger = logging_instance.get_logger()
 
     def compute_chunks(self):
         self.logger.info("Computing chunks...")
         try:
-            self.data_pipeline.run(num_chunks= self.config.training.chunks)
+            self.data_pipeline.run(num_chunks=self.config.training.chunks)
         except FileNotFoundError:
-            self.logger.warning("Couldn't find a valid file to extract training data, please follow installation instructions, found in `README.md`")
+            self.logger.warning(
+                "Couldn't find a valid file to extract training data, please follow installation instructions, found in `README.md`")
         self.logger.info("Chunks done.")
 
     def load_training_data(self):
@@ -188,7 +205,8 @@ class InPoDAPipeline:
             return
         self.logger.info("Processing input data...")
         input_data = self.data_pipeline.preprocess_sentence(input_data)
-        input_ = self.data_pipeline.compute_embeddings([SentimentAnalysisDataPipeline.preprocess_sentence(input_data)])[0]
+        input_ = self.data_pipeline.compute_embeddings([SentimentAnalysisDataPipeline.preprocess_sentence(input_data)])[
+            0]
 
         self.ga_pipeline.best_creature.process(input_)
         print(self.ga_pipeline.best_creature.get_output())
@@ -212,7 +230,7 @@ class InPoDAPipeline:
         self.logger.info("Getting all mentions...")
         mentions_set = set()
         for mentions in self.tweets_dataframe["Mentions"].tolist():
-            if type(mentions) is list: # means that the list is empty
+            if type(mentions) is list:  # means that the list is empty
                 continue
             else:
                 mentions = eval(mentions)
@@ -224,7 +242,7 @@ class InPoDAPipeline:
         self.logger.info("Getting all hashtags...")
         hashtags_set = set()
         for hashtag in self.tweets_dataframe["Hashtags"].tolist():
-            if type(hashtag) is list: # means that the list is empty
+            if type(hashtag) is list:  # means that the list is empty
                 continue
             else:
                 hashtag = eval(hashtag)
@@ -232,21 +250,29 @@ class InPoDAPipeline:
                 hashtags_set.add(h)
         return pd.DataFrame(list(hashtags_set), columns=["Hashtags"])
 
-    def top_k_hashtags(self):
+    def top_k_hashtags(self, k: int = 5):
         self.logger.info("Extracting top K hashtags...")
-        # Placeholder for hashtag extraction
+        hashtags = Partie_Julien_Konstantinov.top_K_hashtags(self.tweets_dataframe, k)
+        labels, occurrences = zip(*hashtags)
+        show_bar_graph(f"Top K={k} Hashtags", "Hashtags", "Occurrences", labels, occurrences)
 
-    def top_k_authors(self):
+    def top_k_authors(self, k: int = 5):
         self.logger.info("Extracting top K authors...")
-        # Placeholder for author extraction
+        authors = Partie_Julien_Konstantinov.top_K_authors(self.tweets_dataframe, k)
+        labels, occurrences = zip(*authors)
+        show_bar_graph(f"Top K={k} Authors", "Authors", "Occurrences", labels, occurrences)
 
-    def top_k_mentioned(self):
+    def top_k_mentioned(self, k: int = 5):
         self.logger.info("Extracting top K users mentioned...")
-        # Placeholder for author extraction
+        mentioned = Partie_Julien_Konstantinov.top_K_mentions(self.tweets_dataframe, k)
+        labels, occurrences = zip(*mentioned)
+        show_bar_graph(f"Top K={k} Mentioned", "Mentions", "Occurrences", labels, occurrences)
 
-    def top_k_topics(self):
+    def top_k_topics(self, k: int = 5):
         self.logger.info("Extracting top K topics...")
-        # Placeholder for author extraction
+        topics_ = Partie_Julien_Konstantinov.top_K_topics(self.tweets_dataframe, k)
+        labels, occurrences = zip(*topics_)
+        show_bar_graph(f"Top K={k} Topics", "Topics", "Occurrences", labels, occurrences)
 
     def count_tweets_user(self):
         self.logger.info("Counting tweets for each user...")
@@ -256,4 +282,3 @@ class InPoDAPipeline:
 
     def count_tweets_mentioned(self):
         self.logger.info("Counting tweets for each mentioned...")
-
