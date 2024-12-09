@@ -1,6 +1,7 @@
 # Import necessary libraries
 import logging
 
+import pandas as pd
 from IPython.display import display, HTML
 from json2html import json2html
 
@@ -126,7 +127,7 @@ class InPoDAPipeline:
         self.model = None
         self.config: Config = None
         self.logger: logging.Logger = None
-        self.data: pd.DataFrame = None
+        self.data: pd.DataFrame = pd.DataFrame()
 
         self.load_config(config_path)
         self.set_logger()
@@ -151,9 +152,20 @@ class InPoDAPipeline:
         logging_instance = Logging(level=level, log_file=log_file, console_logger=console_logger, format_string=format_string)
         self.logger = logging_instance.get_logger()
 
+    def compute_chunks(self):
+        self.logger.info("Computing chunks...")
+        try:
+            self.data_pipeline.run(num_chunks= self.config.training.chunks)
+        except FileNotFoundError:
+            self.logger.warning("Couldn't find a valid file to extract training data, please follow installation instructions, found in `README.md`")
+        self.logger.info("Chunks done.")
+
     def load_training_data(self):
         self.logger.info("Loading training data...")
-        self.data: pd.DataFrame = self.data_pipeline.load_clean_chunks()
+        try:
+            self.data: pd.DataFrame = self.data_pipeline.load_clean_chunks()
+        except FileNotFoundError:
+            self.logger.info("No chunks were found, please follow the installation instructions, found in `README.md`")
         self.logger.info(f"Loaded training data with {len(self.data)} tweets.")
 
     def train_genetic_algorithm(self):
