@@ -36,9 +36,7 @@ def text_cleaning(texte):
     texte_sans_lien = re.sub(r"https?://\S+", "", texte_sans_emojis)
     texte_sans_arobases = re.sub(r"@\w+", "", texte_sans_lien)
     texte_sans_hashtags = re.sub(r"#\w+", "", texte_sans_arobases)
-    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",
-                                                                                                            '').replace(
-        "\u200d", '').replace("@", '').replace("#", '')
+    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",'').replace("\u200d", '').replace("@", '').replace("#", '')
     texte_final = re.sub(r"\s+", " ", texte_sans_parasites).strip()
     return texte_final
 
@@ -313,7 +311,7 @@ def main(path):
     publications_hashtags=nombre_publications_hashtags(df)
     publications_topics=nombre_publications_topics(df)
 
-    return df, tweets_mentionning_specific_user("leonna_julie",df), users_mentionning_specific_hashtag("#CIV",df)#top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+    return df, tweets_mentionning_specific_user("leonna_julie",df), users_mentionning_specific_hashtag("#CIV",df), top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 
 if __name__ == "__main__":
