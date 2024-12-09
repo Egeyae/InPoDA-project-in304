@@ -251,7 +251,10 @@ def top_K_topics(df, K):
 
 def nombre_publications_authors(df):
     compte_authors = df["Auteur"].value_counts()
-    return compte_authors
+    authors_df = compte_authors.reset_index()
+    authors_df.columns = ["Auteur", "Nombre de publications"]
+
+    return authors_df
 
 
 def nombre_publications_hashtags(df):
@@ -259,15 +262,19 @@ def nombre_publications_hashtags(df):
     dataframe_list = df["Hashtags"].to_list()
     hashtags_list = column_to_list(dataframe_list)
     compteur = Counter(hashtags_list)
-    for element, count in compteur.items():
-        dico[element]=count
-    return dic
+    dico["Hashtag"] = list(compteur.keys())
+    dico["Nombre de publications"] = list(compteur.values())
+
+    return pd.DataFrame(dico)
 
 
 def nombre_publications_topics(df):
     compte_topics = df["Topics"].value_counts()
-    return compte_topics
+    topics_df = compte_topics.reset_index()
+    topics_df.columns = ["Topic", "Nombre de publications"]
 
+    return topics_df
+    
 
 
 def tweets_to_df(jason):
