@@ -1,10 +1,7 @@
 import logging
 import os
-import json
 from random import randint
 from .GeneticAlgorithm import GeneticAlgorithm
-from .Creature import Creature
-import pickle
 
 try:
     from cupy import asarray

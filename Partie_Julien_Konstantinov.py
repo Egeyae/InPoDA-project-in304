@@ -1,11 +1,11 @@
+import ast
 import json
-import unicodedata
 import re
+import unicodedata
+from collections import Counter
+
 import pandas as pd
 from transformers import pipeline, XLMRobertaTokenizer
-import spacy
-import ast
-from collections import Counter
 
 
 def file_open(path):
@@ -196,8 +196,8 @@ def topics(jason, classifier, k=5):
 #     nlp = spacy.load('fr_core_news_sm')
 #     sentence = "Emmanuel Macron a parlé du réchauffement climatique."
 #     doc = nlp(sentence)
-#     for token in doc:
-#         if 'subj' in token.dep_:
+#     for token in doc :
+#         if 'subj' in token.dep_ :
 #             print("Sujet trouvé :", token.text)
 
 #     return

@@ -1,8 +1,8 @@
+import logging
 import pickle
 import random
-import logging
-import numpy as np
 from abc import ABC
+
 from sentiment_analysis.gatrainer.Creature import Creature
 
 # Check for GPU availability

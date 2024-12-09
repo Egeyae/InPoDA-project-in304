@@ -1,15 +1,14 @@
 # Import necessary libraries
 import logging
-import os
 
-from json2html import json2html
 from IPython.display import display, HTML
-import pandas as pd
-import json
-from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
+from json2html import json2html
+
+from Partie_Julien_Konstantinov import *
 from sentiment_analysis.SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from sentiment_analysis.SentimentCreature import SentimentCreature
-from Partie_Julien_Konstantinov import *
+from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
+
 
 class Config:
     def __init__(self, cfg_pth: str = './config.json', recurr: bool = False):
@@ -87,6 +86,39 @@ class Logging:
         return self.logger
 
 
+def pretty_dict_display(dico):
+    html_tweets = json2html.convert(json=dico, table_attributes='class="table table-bordered"')
+    custom_css = """
+    <style>
+        table { 
+            width: 100%; 
+            height: 200px
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+        }
+        th { 
+            background-color: #f2f2f2; 
+            text-align: left; 
+        }
+        tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+        }
+        td:first-child { 
+            width: 20%; /* Set key column to take 20% of the table width */
+            font-weight: bold; 
+        }
+        td:last-child { 
+            width: 80%; /* Set value column to take 80% of the table width */
+        }
+    </style>
+    """
+    display(HTML(custom_css + html_tweets))
+
+
 class InPoDAPipeline:
     def __init__(self, config_path: str = "./config.json"):
         self.tweets_dataframe = None
@@ -160,6 +192,34 @@ class InPoDAPipeline:
         self.tweets_dataframe = tweets_to_df(self.tweets)
         return self.tweets_dataframe
 
+    def get_all_authors(self):
+        self.logger.info("Getting all authors...")
+        return pd.DataFrame(list(set(self.tweets_dataframe["Auteur"].tolist())), columns=["Authors"])
+
+    def get_all_mentions(self):
+        self.logger.info("Getting all mentions...")
+        mentions_set = set()
+        for mentions in self.tweets_dataframe["Mentions"].tolist():
+            if type(mentions) is list: # means that the list is empty
+                continue
+            else:
+                mentions = eval(mentions)
+            for m in mentions:
+                mentions_set.add(m)
+        return pd.DataFrame(list(mentions_set), columns=["Mentions"])
+
+    def get_all_hashtags(self):
+        self.logger.info("Getting all hashtags...")
+        hashtags_set = set()
+        for hashtag in self.tweets_dataframe["Hashtags"].tolist():
+            if type(hashtag) is list: # means that the list is empty
+                continue
+            else:
+                hashtag = eval(hashtag)
+            for h in hashtag:
+                hashtags_set.add(h)
+        return pd.DataFrame(list(hashtags_set), columns=["Hashtags"])
+
     def top_k_hashtags(self):
         self.logger.info("Extracting top K hashtags...")
         # Placeholder for hashtag extraction
@@ -185,33 +245,3 @@ class InPoDAPipeline:
     def count_tweets_mentioned(self):
         self.logger.info("Counting tweets for each mentioned...")
 
-    def pretty_dict_display(self, dico):
-        html_tweets = json2html.convert(json=dico, table_attributes='class="table table-bordered"')
-        custom_css = """
-        <style>
-            table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin-bottom: 20px; 
-            }
-            th, td { 
-                border: 1px solid #ddd; 
-                padding: 8px; 
-            }
-            th { 
-                background-color: #f2f2f2; 
-                text-align: left; 
-            }
-            tr:nth-child(even) { 
-                background-color: #f9f9f9; 
-            }
-            td:first-child { 
-                width: 20%; /* Set key column to take 20% of the table width */
-                font-weight: bold; 
-            }
-            td:last-child { 
-                width: 80%; /* Set value column to take 80% of the table width */
-            }
-        </style>
-        """
-        display(HTML(custom_css + html_tweets))

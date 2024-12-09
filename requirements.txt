@@ -1,0 +1,7 @@
+transformers
+ipython
+json2html
+numpy
+pandas
+psutil
+torch
