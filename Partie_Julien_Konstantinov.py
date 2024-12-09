@@ -274,6 +274,14 @@ def nombre_publications_topics(df):
     topics_df.columns = ["Topic", "Nombre de publications"]
 
     return topics_df
+
+def tweets_mentionning_specific_user(user,df):
+    result = df.loc[df["Mentions"].apply(lambda mentions: isinstance(mentions,list) and user in mentions), ["Contenu", "Mentions"]]
+    return result
+
+def users_mentionning_specific_hashtag(hashtag,df):
+    result = df.loc[df["Hashtags"].apply(lambda hashtags: hashtag in hashtags), ["Auteur", "Hashtags"]]
+    return result
     
 
 
@@ -305,7 +313,7 @@ def main(path):
     publications_hashtags=nombre_publications_hashtags(df)
     publications_topics=nombre_publications_topics(df)
 
-    return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+    return df, tweets_mentionning_specific_user("leonna_julie",df), users_mentionning_specific_hashtag("#CIV",df)#top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 
 if __name__ == "__main__":
