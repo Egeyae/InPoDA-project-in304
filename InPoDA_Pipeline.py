@@ -130,6 +130,7 @@ def show_bar_graph(title, xlab, ylab, datax, datay):
     plt.xlabel(xlab)
     plt.ylabel(ylab)
     plt.title(title)
+    plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
 
