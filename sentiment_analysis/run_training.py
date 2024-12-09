@@ -38,9 +38,8 @@ ga_config = {
     "training_sample_size": 100
 }
 
-create = False
-chunks = 10
-import threading
+create = True
+chunks = 5
 import time
 import psutil
 try:
@@ -76,6 +75,7 @@ if __name__ == "__main__":
     data_pipeline = SentimentAnalysisDataPipeline(config=data_config)
     if create:
         data_pipeline.run(num_chunks=chunks)
+        sys.exit(0)
     data = data_pipeline.load_clean_chunks(num_chunks=chunks)
     logger.info("Data pipeline loaded")
     logger.info("Loading GA pipeline")

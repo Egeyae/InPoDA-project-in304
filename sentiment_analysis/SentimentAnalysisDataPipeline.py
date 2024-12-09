@@ -1,11 +1,12 @@
-import zipfile
-import torch
-import numpy as np
-from transformers import AutoTokenizer, AutoModel
-from sentiment_analysis.gatrainer.DataProcessingPipeline import AbstractDataPipeline
-import pandas as pd
-import os
 import gc
+import os
+import zipfile
+
+import pandas as pd
+import torch
+from transformers import AutoTokenizer, AutoModel
+
+from sentiment_analysis.gatrainer.DataProcessingPipeline import AbstractDataPipeline
 
 try:
     import cupy as np
