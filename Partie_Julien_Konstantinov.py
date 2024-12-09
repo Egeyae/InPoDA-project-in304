@@ -246,16 +246,18 @@ def nombre_publications_authors(df):
     return compte_authors
 
 def nombre_publications_hashtags(df):
+    dico={}
     dataframe_list = df["Hashtags"].to_list()
     hashtags_list = column_to_list(dataframe_list)
     compteur = Counter(hashtags_list)
     for element, count in compteur.items():
-        print(element, count)
-    return
+        dico[element]=count
+    return dico
 
 def nombre_publications_topics(df):
     compte_topics = df["Topics"].value_counts()
     return compte_topics
+    
 
 
 def tweets_to_df(jason):
@@ -268,6 +270,8 @@ def tweets_to_df(jason):
     classifier = start_model()
     data["Topics"] = topics(jason, classifier, k=5)[0]
     return pd.DataFrame(data)
+
+
 
 
 def main(path):
@@ -284,7 +288,7 @@ def main(path):
     publications_hashtags=nombre_publications_hashtags(df)
     publications_topics=nombre_publications_topics(df)
    
-    return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+    return top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 if __name__ == "__main__":
     print(main('versailles_tweets_100.json'))
