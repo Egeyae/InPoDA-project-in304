@@ -276,7 +276,7 @@ def nombre_publications_topics(df):
     return topics_df
 
 def tweets_mentionning_specific_user(user,df):
-    result = df.loc[df["Mentions"].apply(lambda mentions: isinstance(mentions,list) and user in mentions), ["Contenu", "Mentions"]]
+    result = df.loc[df["Mentions"].apply(lambda users: user in users), ["Contenu", "Mentions"]]
     return result
 
 def users_mentionning_specific_hashtag(hashtag,df):
