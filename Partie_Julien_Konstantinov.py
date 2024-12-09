@@ -50,7 +50,7 @@ def special_caracters(jason):
     length = len(jason)
     dico = {}
     for i in range(0, length):
-        if jason[i]["text"].isalnum() == True:
+        if jason[i]["text"].isalnum():
             dico[i] = jason[i]["text"]
         else:
             dico[i] = text_cleaning(jason[i]["text"])
@@ -261,13 +261,13 @@ def nombre_publications_hashtags(df):
     compteur = Counter(hashtags_list)
     for element, count in compteur.items():
         dico[element]=count
-    return dico
+    return dic
 
 
 def nombre_publications_topics(df):
     compte_topics = df["Topics"].value_counts()
     return compte_topics
-    
+
 
 
 def tweets_to_df(jason):
@@ -297,7 +297,7 @@ def main(path):
     publications_authors=nombre_publications_authors(df)
     publications_hashtags=nombre_publications_hashtags(df)
     publications_topics=nombre_publications_topics(df)
-   
+
     return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 

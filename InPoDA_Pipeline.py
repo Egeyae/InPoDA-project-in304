@@ -276,9 +276,45 @@ class InPoDAPipeline:
 
     def count_tweets_user(self):
         self.logger.info("Counting tweets for each user...")
+        return Partie_Julien_Konstantinov.nombre_publications_authors(self.tweets_dataframe)
 
     def count_tweets_hashtag(self):
         self.logger.info("Counting tweets for each hashtag...")
 
     def count_tweets_mentioned(self):
         self.logger.info("Counting tweets for each mentioned...")
+
+    def all_tweets_from_user(self, user):
+        self.logger.info(f"Retrieving tweets from user: {user}...")
+        return self.tweets_dataframe[self.tweets_dataframe["Auteur"] == user]
+
+    def all_users_mentioned_by_user(self, user):
+        self.logger.info(f"Retrieving mentioned users by user: {user}...")
+        all_tweets = self.all_tweets_from_user(user)
+        mentions = all_tweets["Mentions"].explode().dropna().unique()
+        return pd.DataFrame(mentions, columns=["Users Mentioned"])
+
+    def all_hashtags_used_by_user(self, user):
+        self.logger.info(f"Retrieving hashtags used by user: {user}...")
+        all_tweets = self.all_tweets_from_user(user)
+        hashtags = all_tweets["Hashtags"].explode().dropna().unique()
+        return pd.DataFrame(hashtags, columns=["Hashtags Used"])
+
+    def all_users_using_hashtag(self, hashtag):
+        self.logger.info(f"Retrieving users using hashtag: {hashtag}...")
+        all_tweets = self.tweets_dataframe[self.tweets_dataframe["Hashtags"].apply(lambda x: hashtag in x if isinstance(x, list) else False)]
+        users = all_tweets["Auteur"].unique()
+        return pd.DataFrame(users, columns=["Users Using Hashtag"])
+
+    def all_tweets_where_user(self, user):
+        self.logger.info(f"Retrieving tweets where user is mentioned: {user}...")
+        return self.tweets_dataframe[self.tweets_dataframe["Mentions"].apply(lambda x: user in x if isinstance(x, list) else False)]
+
+    def number_of_tweets_per_user(self):
+        return Partie_Julien_Konstantinov.nombre_publications_authors(self.tweets_dataframe)
+
+    def number_of_tweets_per_hashtag(self):
+        return Partie_Julien_Konstantinov.nombre_publications_hashtags(self.tweets_dataframe)
+
+    def number_of_tweets_per_topic(self):
+        return Partie_Julien_Konstantinov.nombre_publications_topics(self.tweets_dataframe)
