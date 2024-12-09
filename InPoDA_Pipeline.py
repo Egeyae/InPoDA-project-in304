@@ -302,14 +302,14 @@ class InPoDAPipeline:
         return pd.DataFrame(hashtags, columns=["Hashtags Used"])
 
     def all_users_using_hashtag(self, hashtag):
-        self.logger.info(f"Retrieving users using hashtag: {hashtag}...")
-        all_tweets = self.tweets_dataframe[self.tweets_dataframe["Hashtags"].apply(lambda x: hashtag in x if isinstance(x, list) else False)]
-        users = all_tweets["Auteur"].unique()
-        return pd.DataFrame(users, columns=["Users Using Hashtag"])
+        # self.logger.info(f"Retrieving users using hashtag: {hashtag}...")
+        # all_tweets = self.tweets_dataframe[self.tweets_dataframe["Hashtags"].apply(lambda x: hashtag in x if isinstance(x, list) else False)]
+        # users = all_tweets["Auteur"].unique()
+        return Partie_Julien_Konstantinov.users_mentionning_specific_hashtag(hashtag,self.tweets_dataframe)
 
     def all_tweets_where_user(self, user):
-        self.logger.info(f"Retrieving tweets where user is mentioned: {user}...")
-        return self.tweets_dataframe[self.tweets_dataframe["Mentions"].apply(lambda x: user in x if isinstance(x, list) else False)]
+        #self.logger.info(f"Retrieving tweets where user is mentioned: {user}...")
+        return Partie_Julien_Konstantinov.tweets_mentionning_specific_user(user,self.tweets_dataframe)
 
     def number_of_tweets_per_user(self):
         return Partie_Julien_Konstantinov.nombre_publications_authors(self.tweets_dataframe)
