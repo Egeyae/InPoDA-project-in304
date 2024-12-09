@@ -226,27 +226,24 @@ def top_K_hashtags(df, K):
 
 def top_K_authors(df, K):
     compte_authors = df["Auteur"].value_counts()
-    #max_authors = compte_authors.nlargest(K)
-    compteur = Counter(compte_authors)
+    compteur = Counter(compte_authors.to_dict())
     max_authors = compteur.most_common(K)
     return max_authors
 
 
 def top_K_mentions(df, K):
     compte_mentions = df["Mentions"].value_counts()
-    dataframe_list_2 = df["Mentions"].to_list()
-    mentions_list = column_to_list(dataframe_list_2)
-    compteur2 = Counter(mentions_list)
-    max_mentions = compteur2.most_common(K)
+    dataframe_list = df["Mentions"].to_list()
+    mentions_list = column_to_list(dataframe_list)
+    compteur = Counter(mentions_list)
+    max_mentions = compteur.most_common(K)
 
     return max_mentions
 
 
 def top_K_topics(df, K):
     compte_topics = df["Topics"].value_counts()
-    # max_topics = compte_topics.nlargest(K)
-    topics_list = column_to_list(compte_topics)
-    compteur = Counter(topics_list)
+    compteur = Counter(compte_topics.to_dict())
     max_topics = compteur.most_common(K)
 
     return max_topics
@@ -301,7 +298,7 @@ def main(path):
     publications_hashtags=nombre_publications_hashtags(df)
     publications_topics=nombre_publications_topics(df)
    
-    return top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+    return df, top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
 
 
 if __name__ == "__main__":
