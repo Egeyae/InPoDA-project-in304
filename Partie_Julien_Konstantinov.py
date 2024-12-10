@@ -6,7 +6,7 @@ from collections import Counter
 import torch
 import pandas as pd
 from transformers import pipeline, XLMRobertaTokenizer
-
+from textblob import TextBlob
 
 def file_open(path):
     """
@@ -124,6 +124,10 @@ def contenu_list(jason):
     for i in range(0, length):
         contenus.append(jason[i]["text"])
     return contenus
+
+def sentiment_list(jason):
+    sentiments_list = []
+    length = len(jason)
 
 
 def start_model():
