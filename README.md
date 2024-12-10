@@ -50,3 +50,10 @@ pip install cupy
 If you want to run on your machine the training of the model, you need to download the following dataset: [Sentiment140](https://www.kaggle.com/datasets/kazanova/sentiment140).
 Then you should extract the archive and put the CSV into `./data/` & rename it to `raw_sentiment140.csv`.
 
+---
+
+## Running the notebook
+To run the Jupyter Notebook:
+```shell
+python3 -m jupyter notebook ./InPoDA_CompteRendu.ipynb
+```
