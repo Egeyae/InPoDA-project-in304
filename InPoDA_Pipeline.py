@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from IPython.display import display, HTML
 from json2html import json2html
 
-import Partie_Julien_Konstantinov
-from Partie_Julien_Konstantinov import *
+import main
+from main import *
 from sentiment_analysis.SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from sentiment_analysis.SentimentCreature import SentimentCreature
 from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
