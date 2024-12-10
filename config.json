@@ -37,5 +37,6 @@
   },
   "tweets": {
     "file": "./versailles_tweets_100.json"
-  }
+  },
+  "topic_model": "small"
 }

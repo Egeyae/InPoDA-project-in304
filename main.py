@@ -161,7 +161,7 @@ def sentiment_list(jason):
     return sentiments
 
 
-def start_model():
+def start_model(model="small"):
     """
     Fonction qui permet de démarrer le modèle Roberta de transformers.
     """
@@ -363,7 +363,7 @@ def users_mentionning_specific_hashtag(hashtag, df):
     return result
 
 
-def tweets_to_df(jason):
+def tweets_to_df(jason, model="small"):
     """
     Fonction qui retourne un dataframe à partir d'un dictionnaire.
     """
@@ -374,7 +374,7 @@ def tweets_to_df(jason):
         "Contenu": contenu_list(jason),
         "Sentiment": sentiment_list(jason),
     }
-    classifier = start_model()
+    classifier = start_model(model=model)
     data["Topics"] = topics(jason, classifier, k=5)[0]
     return pd.DataFrame(data)
 

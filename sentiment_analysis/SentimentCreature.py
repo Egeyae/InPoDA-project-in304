@@ -20,7 +20,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
-logger.info(f"GPU available: {HAS_GPU}")
+logger.info(f"Cupy available: {HAS_GPU}")
 
 
 class SentimentCreature(Creature, ABC):
