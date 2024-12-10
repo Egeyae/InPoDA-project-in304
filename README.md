@@ -26,7 +26,7 @@ python3 -m virtualenv .venv
 .\.venv\Scripts\activate
 
 # For Unix (MacOS, Linux):
-source ./.venv/bin/activate.sh
+source ./.venv/bin/activate
 ```
 ---
 ##### Packages
