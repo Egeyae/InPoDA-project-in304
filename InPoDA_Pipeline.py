@@ -4,9 +4,9 @@ import logging
 import matplotlib.pyplot as plt
 from IPython.display import display, HTML
 from json2html import json2html
-
+import json
 import main
-from main import *
+import pandas as pd
 from sentiment_analysis.SentimentAnalysisDataPipeline import SentimentAnalysisDataPipeline
 from sentiment_analysis.SentimentCreature import SentimentCreature
 from sentiment_analysis.gatrainer.GeneticAlgorithmPipeline import GeneticAlgorithmPipeline
@@ -212,12 +212,12 @@ class InPoDAPipeline:
 
     def load_tweets(self):
         self.logger.info("Loading tweets...")
-        self.tweets = file_open(self.config.tweets.file)
+        self.tweets = main.file_open(self.config.tweets.file)
         return self.tweets
 
     def process_tweets_to_dataframe(self):
         self.logger.info("Processing tweets into a DataFrame...")
-        self.tweets_dataframe = tweets_to_df(self.tweets)
+        self.tweets_dataframe = main.tweets_to_df(self.tweets)
         return self.tweets_dataframe
 
     def get_all_authors(self):
