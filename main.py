@@ -8,6 +8,7 @@ import pandas as pd
 from transformers import pipeline, XLMRobertaTokenizer
 from textblob import TextBlob
 
+
 def file_open(path):
     """
     Fonction qui permet d'ouvrir un fichier 
@@ -125,9 +126,27 @@ def contenu_list(jason):
         contenus.append(jason[i]["text"])
     return contenus
 
+
 def sentiment_list(jason):
-    sentiments_list = []
+    sentiments = []
     length = len(jason)
+
+    def polarity_to_sentiment(polarity):
+        if polarity == 0:
+            return "neutral"
+        elif polarity > 0:
+            return "positive"
+        else:
+            return "negative"
+
+    for i in range(0, length):
+        text = text_cleaning(jason[i]["text"])
+        if text:
+            sentiments.append(polarity_to_sentiment(TextBlob(text).sentiment.polarity))
+        else:
+            sentiments.append("N/A")
+
+    return sentiments
 
 
 def start_model():
@@ -296,7 +315,8 @@ def tweets_to_df(jason):
         "Auteur": authors_list(jason),
         "Hashtags": hashtags_list(jason),
         "Mentions": users_list(jason),
-        "Contenu": contenu_list(jason)
+        "Contenu": contenu_list(jason),
+        "Sentiment": sentiment_list(jason),
     }
     classifier = start_model()
     data["Topics"] = topics(jason, classifier, k=5)[0]
