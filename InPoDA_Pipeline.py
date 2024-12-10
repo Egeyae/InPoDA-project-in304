@@ -250,31 +250,31 @@ class InPoDAPipeline:
 
     def top_k_hashtags(self, k: int = 5):
         self.logger.info("Extracting top K hashtags...")
-        hashtags = Partie_Julien_Konstantinov.top_K_hashtags(self.tweets_dataframe, k)
+        hashtags = main.top_K_hashtags(self.tweets_dataframe, k)
         labels, occurrences = zip(*hashtags)
         show_bar_graph(f"Top K={k} Hashtags", "Hashtags", "Occurrences", labels, occurrences)
 
     def top_k_authors(self, k: int = 5):
         self.logger.info("Extracting top K authors...")
-        authors = Partie_Julien_Konstantinov.top_K_authors(self.tweets_dataframe, k)
+        authors = main.top_K_authors(self.tweets_dataframe, k)
         labels, occurrences = zip(*authors)
         show_bar_graph(f"Top K={k} Authors", "Authors", "Occurrences", labels, occurrences)
 
     def top_k_mentioned(self, k: int = 5):
         self.logger.info("Extracting top K users mentioned...")
-        mentioned = Partie_Julien_Konstantinov.top_K_mentions(self.tweets_dataframe, k)
+        mentioned = main.top_K_mentions(self.tweets_dataframe, k)
         labels, occurrences = zip(*mentioned)
         show_bar_graph(f"Top K={k} Mentioned", "Mentions", "Occurrences", labels, occurrences)
 
     def top_k_topics(self, k: int = 5):
         self.logger.info("Extracting top K topics...")
-        topics_ = Partie_Julien_Konstantinov.top_K_topics(self.tweets_dataframe, k)
+        topics_ = main.top_K_topics(self.tweets_dataframe, k)
         labels, occurrences = zip(*topics_)
         show_bar_graph(f"Top K={k} Topics", "Topics", "Occurrences", labels, occurrences)
 
     def count_tweets_user(self):
         self.logger.info("Counting tweets for each user...")
-        return Partie_Julien_Konstantinov.nombre_publications_authors(self.tweets_dataframe)
+        return main.nombre_publications_authors(self.tweets_dataframe)
 
     def count_tweets_hashtag(self):
         self.logger.info("Counting tweets for each hashtag...")
@@ -302,17 +302,17 @@ class InPoDAPipeline:
         # self.logger.info(f"Retrieving users using hashtag: {hashtag}...")
         # all_tweets = self.tweets_dataframe[self.tweets_dataframe["Hashtags"].apply(lambda x: hashtag in x if isinstance(x, list) else False)]
         # users = all_tweets["Auteur"].unique()
-        return Partie_Julien_Konstantinov.users_mentionning_specific_hashtag(hashtag,self.tweets_dataframe)
+        return main.users_mentionning_specific_hashtag(hashtag,self.tweets_dataframe)
 
     def all_tweets_where_user(self, user):
         #self.logger.info(f"Retrieving tweets where user is mentioned: {user}...")
-        return Partie_Julien_Konstantinov.tweets_mentionning_specific_user(user,self.tweets_dataframe)
+        return main.tweets_mentionning_specific_user(user,self.tweets_dataframe)
 
     def number_of_tweets_per_user(self):
-        return Partie_Julien_Konstantinov.nombre_publications_authors(self.tweets_dataframe)
+        return main.nombre_publications_authors(self.tweets_dataframe)
 
     def number_of_tweets_per_hashtag(self):
-        return Partie_Julien_Konstantinov.nombre_publications_hashtags(self.tweets_dataframe)
+        return main.nombre_publications_hashtags(self.tweets_dataframe)
 
     def number_of_tweets_per_topic(self):
-        return Partie_Julien_Konstantinov.nombre_publications_topics(self.tweets_dataframe)
+        return main.nombre_publications_topics(self.tweets_dataframe)
