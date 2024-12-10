@@ -3,7 +3,7 @@ import json
 import re
 import unicodedata
 from collections import Counter
-
+import torch
 import pandas as pd
 from transformers import pipeline, XLMRobertaTokenizer
 
@@ -36,7 +36,9 @@ def text_cleaning(texte):
     texte_sans_lien = re.sub(r"https?://\S+", "", texte_sans_emojis)
     texte_sans_arobases = re.sub(r"@\w+", "", texte_sans_lien)
     texte_sans_hashtags = re.sub(r"#\w+", "", texte_sans_arobases)
-    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",'').replace("\u200d", '').replace("@", '').replace("#", '')
+    texte_sans_parasites = texte_sans_hashtags.replace('\n', '').replace('\r', '').replace("'", '').replace("’",
+                                                                                                            '').replace(
+        "\u200d", '').replace("@", '').replace("#", '')
     texte_final = re.sub(r"\s+", " ", texte_sans_parasites).strip()
     return texte_final
 
@@ -130,8 +132,9 @@ def start_model():
         "big": "joeddav/xlm-roberta-large-xnli"  # Warning ! This is very slow
     }
     model_name = models["small"]
+    device = 0 if torch.cuda.is_available() else -1
     tokenizer = XLMRobertaTokenizer.from_pretrained(model_name)
-    classifier = pipeline("zero-shot-classification", model=model_name, tokenizer=tokenizer)
+    classifier = pipeline("zero-shot-classification", model=model_name, tokenizer=tokenizer, device=device)
 
     return classifier
 
@@ -256,7 +259,7 @@ def nombre_publications_authors(df):
 
 
 def nombre_publications_hashtags(df):
-    dico={}
+    dico = {}
     dataframe_list = df["Hashtags"].to_list()
     hashtags_list = column_to_list(dataframe_list)
     compteur = Counter(hashtags_list)
@@ -273,14 +276,15 @@ def nombre_publications_topics(df):
 
     return topics_df
 
-def tweets_mentionning_specific_user(user,df):
+
+def tweets_mentionning_specific_user(user, df):
     result = df.loc[df["Mentions"].apply(lambda users: user in users), ["Contenu", "Mentions"]]
     return result
 
-def users_mentionning_specific_hashtag(hashtag,df):
+
+def users_mentionning_specific_hashtag(hashtag, df):
     result = df.loc[df["Hashtags"].apply(lambda hashtags: hashtag in hashtags), ["Auteur", "Hashtags"]]
     return result
-    
 
 
 def tweets_to_df(jason):
@@ -295,23 +299,21 @@ def tweets_to_df(jason):
     return pd.DataFrame(data)
 
 
-
-
 def main(path):
-    data={}
-    jason=file_open(path)
-    clean_text=special_caracters(jason)
-    K=int(input("Entrez un entier"))
-    df=tweets_to_df(jason)
-    top_hashtags=top_K_hashtags(df,K)
-    top_authors=top_K_authors(df,K)
-    top_mentions=top_K_mentions(df,K)
-    top_topics=top_K_topics(df,K)
-    publications_authors=nombre_publications_authors(df)
-    publications_hashtags=nombre_publications_hashtags(df)
-    publications_topics=nombre_publications_topics(df)
+    data = {}
+    jason = file_open(path)
+    clean_text = special_caracters(jason)
+    K = int(input("Entrez un entier"))
+    df = tweets_to_df(jason)
+    top_hashtags = top_K_hashtags(df, K)
+    top_authors = top_K_authors(df, K)
+    top_mentions = top_K_mentions(df, K)
+    top_topics = top_K_topics(df, K)
+    publications_authors = nombre_publications_authors(df)
+    publications_hashtags = nombre_publications_hashtags(df)
+    publications_topics = nombre_publications_topics(df)
 
-    return df, tweets_mentionning_specific_user("leonna_julie",df), users_mentionning_specific_hashtag("#CIV",df), top_hashtags, top_authors, top_mentions, top_topics, publications_authors, publications_hashtags, publications_topics
+    return tweets_mentionning_specific_user("leonna_julie", df)
 
 
 if __name__ == "__main__":
