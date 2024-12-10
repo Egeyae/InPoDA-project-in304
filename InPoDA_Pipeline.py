@@ -217,7 +217,7 @@ class InPoDAPipeline:
 
     def process_tweets_to_dataframe(self):
         self.logger.info("Processing tweets into a DataFrame...")
-        self.tweets_dataframe = main.tweets_to_df(self.tweets)
+        self.tweets_dataframe = main.tweets_to_df(self.tweets, model=self.config.topic_model)
         return self.tweets_dataframe
 
     def get_all_authors(self):
